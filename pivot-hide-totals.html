@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Kendo PivotGrid - Ocultar Totales</title>
+    <link href="https://kendo.cdn.telerik.com/2023.3.1010/styles/kendo.default-v2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2023.3.1010/js/kendo.all.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2rem;
+        }
+        .demo-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        button {
+            margin: 5px;
+            padding: 8px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        /* CSS para ocultar totales */
+        .hide-totals .k-pivotgrid-total {
+            display: none !important;
+        }
+        .hide-total-rows .k-pivotgrid-total-row {
+            display: none !important;
+        }
+        .hide-total-columns .k-pivotgrid-total-column {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <h1>Kendo PivotGrid - Ocultar Totales</h1>
+    
+    <div class="demo-section">
+        <h2>Método 1: Configuración en el DataSource</h2>
+        <div class="controls">
+            <button onclick="toggleTotalsMethod1()">Alternar Totales (Método 1)</button>
+        </div>
+        <div id="pivotgrid1"></div>
+    </div>
+
+    <div class="demo-section">
+        <h2>Método 2: CSS para ocultar totales</h2>
+        <div class="controls">
+            <button onclick="toggleTotalsMethod2()">Alternar Totales (Método 2)</button>
+        </div>
+        <div id="pivotgrid2"></div>
+    </div>
+
+    <div class="demo-section">
+        <h2>Método 3: JavaScript para ocultar totales específicos</h2>
+        <div class="controls">
+            <button onclick="hideTotalRows()">Ocultar Filas de Totales</button>
+            <button onclick="hideTotalColumns()">Ocultar Columnas de Totales</button>
+            <button onclick="showAllTotals()">Mostrar Todos los Totales</button>
+        </div>
+        <div id="pivotgrid3"></div>
+    </div>
+
+    <script>
+        var pivotGrid1, pivotGrid2, pivotGrid3;
+        var showTotals1 = true;
+        var showTotals2 = true;
+
+        // Datos de ejemplo
+        var data = [
+            { product: "A", category: "Electronics", year: "2022", amount: 200 },
+            { product: "B", category: "Electronics", year: "2022", amount: 300 },
+            { product: "C", category: "Furniture", year: "2023", amount: 150 },
+            { product: "D", category: "Furniture", year: "2023", amount: 350 },
+            { product: "E", category: "Electronics", year: "2023", amount: 400 },
+            { product: "F", category: "Furniture", year: "2022", amount: 250 }
+        ];
+
+        $(document).ready(function() {
+            initializePivotGrids();
+        });
+
+        function initializePivotGrids() {
+            // Método 1: Configuración en el DataSource
+            pivotGrid1 = $("#pivotgrid1").kendoPivotGrid({
+                dataSource: {
+                    type: "json",
+                    data: data,
+                    schema: {
+                        cube: {
+                            dimensions: {
+                                product: { caption: "Product", uniqueName: "product" },
+                                category: { caption: "Category", uniqueName: "category" },
+                                year: { caption: "Year", uniqueName: "year" }
+                            },
+                            measures: {
+                                amount: {
+                                    field: "amount",
+                                    aggregate: "sum",
+                                    format: "{0:c}",
+                                    caption: "Total Amount"
+                                }
+                            }
+                        }
+                    },
+                    columns: [{ name: "year" }],
+                    rows: [{ name: "category" }, { name: "product" }],
+                    measures: ["amount"],
+                    // Configuración para ocultar totales
+                    totals: {
+                        rows: false,
+                        columns: false
+                    }
+                },
+                height: 300,
+                columnWidth: 120
+            }).data("kendoPivotGrid");
+
+            // Método 2: CSS para ocultar totales
+            pivotGrid2 = $("#pivotgrid2").kendoPivotGrid({
+                dataSource: {
+                    type: "json",
+                    data: data,
+                    schema: {
+                        cube: {
+                            dimensions: {
+                                product: { caption: "Product", uniqueName: "product" },
+                                category: { caption: "Category", uniqueName: "category" },
+                                year: { caption: "Year", uniqueName: "year" }
+                            },
+                            measures: {
+                                amount: {
+                                    field: "amount",
+                                    aggregate: "sum",
+                                    format: "{0:c}",
+                                    caption: "Total Amount"
+                                }
+                            }
+                        }
+                    },
+                    columns: [{ name: "year" }],
+                    rows: [{ name: "category" }, { name: "product" }],
+                    measures: ["amount"]
+                },
+                height: 300,
+                columnWidth: 120
+            }).data("kendoPivotGrid");
+
+            // Método 3: JavaScript para controlar totales
+            pivotGrid3 = $("#pivotgrid3").kendoPivotGrid({
+                dataSource: {
+                    type: "json",
+                    data: data,
+                    schema: {
+                        cube: {
+                            dimensions: {
+                                product: { caption: "Product", uniqueName: "product" },
+                                category: { caption: "Category", uniqueName: "category" },
+                                year: { caption: "Year", uniqueName: "year" }
+                            },
+                            measures: {
+                                amount: {
+                                    field: "amount",
+                                    aggregate: "sum",
+                                    format: "{0:c}",
+                                    caption: "Total Amount"
+                                }
+                            }
+                        }
+                    },
+                    columns: [{ name: "year" }],
+                    rows: [{ name: "category" }, { name: "product" }],
+                    measures: ["amount"]
+                },
+                height: 300,
+                columnWidth: 120
+            }).data("kendoPivotGrid");
+        }
+
+        // Método 1: Alternar totales usando configuración del DataSource
+        function toggleTotalsMethod1() {
+            showTotals1 = !showTotals1;
+            var dataSource = pivotGrid1.dataSource;
+            
+            dataSource.options.totals = {
+                rows: showTotals1,
+                columns: showTotals1
+            };
+            
+            dataSource.read();
+        }
+
+        // Método 2: Alternar totales usando CSS
+        function toggleTotalsMethod2() {
+            showTotals2 = !showTotals2;
+            var container = $("#pivotgrid2");
+            
+            if (showTotals2) {
+                container.removeClass("hide-totals");
+            } else {
+                container.addClass("hide-totals");
+            }
+        }
+
+        // Método 3: Ocultar filas de totales
+        function hideTotalRows() {
+            var container = $("#pivotgrid3");
+            container.removeClass("hide-total-columns");
+            container.addClass("hide-total-rows");
+        }
+
+        // Método 3: Ocultar columnas de totales
+        function hideTotalColumns() {
+            var container = $("#pivotgrid3");
+            container.removeClass("hide-total-rows");
+            container.addClass("hide-total-columns");
+        }
+
+        // Método 3: Mostrar todos los totales
+        function showAllTotals() {
+            var container = $("#pivotgrid3");
+            container.removeClass("hide-total-rows hide-total-columns");
+        }
+    </script>
+</body>
+</html>

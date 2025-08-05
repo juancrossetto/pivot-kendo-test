@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<base href="https://demos.telerik.com/kendo-ui/pivotgrid/index" />
+		<style>
+			html {
+				font-size: 14px;
+				font-family: Arial, Helvetica, sans-serif;
+			}
+		</style>
+		<title>PivotGrid con Opciones para Ocultar Totales</title>
+		<link
+			href="https://kendo.cdn.telerik.com/themes/11.0.2/default/default-main.css"
+			rel="stylesheet"
+		/>
+		<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+		<script src="https://kendo.cdn.telerik.com/2025.2.702/js/kendo.all.min.js"></script>
+	</head>
+	<body>
+		<hr />
+		<div id="chart"></div>
+		<div id="stockChart"></div>
+		<style>
+			.selected-cell {
+				background-color: rgba(0, 123, 255, 0.2);
+				outline: 2px solid #007bff;
+			}
+			.chart-container {
+				margin: 20px 0;
+				padding: 10px;
+				border: 1px solid #ddd;
+				border-radius: 5px;
+			}
+			.k-pivotgrid-total {
+				background-color: #ffe0ef !important;
+			}
+
+			/* Estilo para celdas de totales */
+			.k-alt {
+				background-color: #ffb347 !important;
+				color: black !important;
+				font-weight: bold !important;
+			}
+
+			/* Estilo para headers de totales */
+			.k-grid-header-table .k-table-tbody tr th.k-alt {
+				background-color: #ffb347 !important;
+				color: black !important;
+				font-weight: bold !important;
+			}
+
+			/* CSS para ocultar totales */
+			.hide-totals .k-pivotgrid-total {
+				display: none !important;
+			}
+			.hide-total-rows .k-pivotgrid-total-row {
+				display: none !important;
+			}
+			.hide-total-columns .k-pivotgrid-total-column {
+				display: none !important;
+			}
+
+			.controls {
+				margin: 10px 0;
+				padding: 10px;
+				background-color: #f8f9fa;
+				border-radius: 5px;
+			}
+			.controls button {
+				margin: 5px;
+				padding: 8px 15px;
+				background-color: #007bff;
+				color: white;
+				border: none;
+				border-radius: 4px;
+				cursor: pointer;
+			}
+			.controls button:hover {
+				background-color: #0056b3;
+			}
+		</style>
+		<div style="margin-bottom: 20px">
+			<button id="refreshPivotData">Refrescar Datos</button>
+		</div>
+
+		<!-- Controles para ocultar totales -->
+		<div class="controls">
+			<h3>Controles para Ocultar Totales:</h3>
+			<button onclick="hideAllTotals()">Ocultar Todos los Totales</button>
+			<button onclick="showAllTotals()">Mostrar Todos los Totales</button>
+			<button onclick="hideTotalRows()">Ocultar Solo Filas de Totales</button>
+			<button onclick="hideTotalColumns()">Ocultar Solo Columnas de Totales</button>
+			<button onclick="toggleTotalsDataSource()">Alternar Totales (DataSource)</button>
+		</div>
+
+		<div id="pivotgrid" style="margin-bottom: 20px"></div>
+		<button id="showChart">Mostrar Chart desde Pivot HTML</button>
+		<button id="showStockChart">Mostrar Stock Chart</button>
+		<script>
+			var pivotGrid;
+			var processedData = {};
+			var sampleData = [];
+			var showTotals = true;
+
+			sampleData = [
+				{
+					PASFundName: "Ardsley - MAP MLH291_00",
+					fundid: 1494,
+					managername: "Ardsley - MAP MLH291_00",
+					securitydescription: "BRISTOL-MYERS SQUIBB CO",
+					assetclass: "Equity",
+					securitytype: "Common Share",
+					gicssector: "Health Care",
+					region: "Unassigned",
+					country: "USA",
+					lhExposure: 207.7516,
+					marketvalue: 207.7516,
+					NetNotional: 207.7516,
+					attributiondate: "2025-03-13T00:00:00",
+					FundIDFK: 1494,
+					Net_lhExposure: 207.7516,
+					Gross_lhExposure: 207.7516,
+					Contribution: 9.242525503308228,
+					Pnl: 100,
+					NMV: 8.880125150779678,
+					GMV: 8.880125150779678,
+				},
+				{
+					PASFundName: "Ardsley - MAP MLH291_00",
+					fundid: 1494,
+					managername: "Ardsley - MAP MLH291_00",
+					securitydescription: "TERADYNE INC",
+					assetclass: "Equity",
+					securitytype: "Common Share 2",
+					gicssector: "Information Technology",
+					region: "Unassigned",
+					country: "USA",
+					lhExposure: 0.0,
+					marketvalue: 0.0,
+					NetNotional: 0.0,
+					attributiondate: "2025-03-14T00:00:00",
+					FundIDFK: 1494,
+					Net_lhExposure: 0.0,
+					Gross_lhExposure: 0.0,
+					Contribution: 5.123456789,
+					Pnl: 50,
+					NMV: 4.567890123,
+					GMV: 4.567890123,
+				},
+				{
+					PASFundName: "Ardsley - MAP MLH291_00",
+					fundid: 1494,
+					managername: "Ardsley - MAP MLH291_00",
+					securitydescription: "APPLE INC",
+					assetclass: "Equity",
+					securitytype: "Common Share",
+					gicssector: "Information Technology",
+					region: "Unassigned",
+					country: "USA",
+					lhExposure: 150.0,
+					marketvalue: 150.0,
+					NetNotional: 150.0,
+					attributiondate: "2025-03-15T00:00:00",
+					FundIDFK: 1494,
+					Net_lhExposure: 150.0,
+					Gross_lhExposure: 150.0,
+					Contribution: 12.345678901,
+					Pnl: 75,
+					NMV: 11.111111111,
+					GMV: 11.111111111,
+				}
+			];
+
+			$(document).ready(function () {
+				initializePivotGrid();
+			});
+
+			function initializePivotGrid() {
+				pivotgrid = $("#pivotgrid")
+					.kendoPivotGrid({
+						dataSource: {
+							data: sampleData,
+							schema: {
+								model: {
+									fields: {
+										PASFundName: { type: "string" },
+										fundid: { type: "number" },
+										managername: { type: "string" },
+										securitydescription: { type: "string" },
+										assetclass: { type: "string" },
+										securitytype: { type: "string" },
+										gicssector: { type: "string" },
+										region: { type: "string" },
+										country: { type: "string" },
+										lhExposure: { type: "number" },
+										marketvalue: { type: "number" },
+										NetNotional: { type: "number" },
+										attributiondate: { type: "string" },
+										FundIDFK: { type: "number" },
+										Net_lhExposure: { type: "number" },
+										Gross_lhExposure: { type: "number" },
+										Contribution: { type: "number" },
+										Pnl: { type: "number" },
+										NMV: { type: "number" },
+										GMV: { type: "number" },
+									},
+								},
+								cube: {
+									dimensions: {
+										PASFundName: { caption: "PASFundName" },
+										fundid: { caption: "fundid" },
+										managername: {
+											caption: "managername",
+										},
+										securitydescription: {
+											caption: "securitydescription",
+										},
+										assetclass: {
+											caption: "assetclass",
+										},
+										securitytype: { caption: "securitytype" },
+										gicssector: {
+											caption: "gicssector",
+										},
+										region: { caption: "region" },
+										country: { caption: "country" },
+										attributiondate: {
+											caption: "attributiondate",
+										},
+										FundIDFK: { caption: "FundIDFK" },
+									},
+									measures: {
+										Contribution: {
+											field: "Contribution",
+											aggregate: "sum",
+											format: "{0:n2}",
+										},
+										Pnl: {
+											field: "Pnl",
+											aggregate: "sum",
+											format: "{0:n2}",
+										},
+										NMV: {
+											field: "NMV",
+											aggregate: "sum",
+											format: "{0:n2}",
+										},
+										GMV: {
+											field: "GMV",
+											aggregate: "sum",
+											format: "{0:n2}",
+										},
+									},
+								},
+							},
+							rows: [
+								{ name: "PASFundName", expand: true },
+								{ name: "securitytype", expand: true },
+							],
+							columns: [{ name: "attributiondate", expand: true }, { name: "country", expand: true }],
+							measures: ["Contribution", "Pnl"],
+							expand: true,
+							// Configuración inicial para mostrar totales
+							totals: {
+								rows: true,
+								columns: true
+							}
+						},
+						height: 400,
+						dataBound: function () {
+							pivotGrid = this;
+							console.log("entra por databound");
+						},
+					})
+					.data("kendoPivotGrid");
+			}
+
+			// Función para ocultar todos los totales usando CSS
+			function hideAllTotals() {
+				var container = $("#pivotgrid");
+				container.removeClass("hide-total-rows hide-total-columns");
+				container.addClass("hide-totals");
+			}
+
+			// Función para mostrar todos los totales
+			function showAllTotals() {
+				var container = $("#pivotgrid");
+				container.removeClass("hide-totals hide-total-rows hide-total-columns");
+			}
+
+			// Función para ocultar solo filas de totales
+			function hideTotalRows() {
+				var container = $("#pivotgrid");
+				container.removeClass("hide-totals hide-total-columns");
+				container.addClass("hide-total-rows");
+			}
+
+			// Función para ocultar solo columnas de totales
+			function hideTotalColumns() {
+				var container = $("#pivotgrid");
+				container.removeClass("hide-totals hide-total-rows");
+				container.addClass("hide-total-columns");
+			}
+
+			// Función para alternar totales usando configuración del DataSource
+			function toggleTotalsDataSource() {
+				showTotals = !showTotals;
+				var dataSource = pivotGrid.dataSource;
+				
+				dataSource.options.totals = {
+					rows: showTotals,
+					columns: showTotals
+				};
+				
+				dataSource.read();
+			}
+		</script>
+	</body>
+</html>
