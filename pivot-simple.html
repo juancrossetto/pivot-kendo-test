@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Kendo PivotGrid Simple Test</title>
+    <link href="https://kendo.cdn.telerik.com/2023.3.1010/styles/kendo.default-v2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://kendo.cdn.telerik.com/2023.3.1010/js/kendo.all.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>Kendo PivotGrid Simple Test</h1>
+    <div id="pivotgrid"></div>
+
+    <script>
+        $(document).ready(function() {
+            // Datos de ejemplo simples
+            var data = [
+                { product: "A", category: "Electronics", year: "2022", amount: 200 },
+                { product: "B", category: "Electronics", year: "2022", amount: 300 },
+                { product: "C", category: "Furniture", year: "2023", amount: 150 },
+                { product: "D", category: "Furniture", year: "2023", amount: 350 }
+            ];
+
+            $("#pivotgrid").kendoPivotGrid({
+                dataSource: {
+                    type: "json",
+                    data: data,
+                    schema: {
+                        cube: {
+                            dimensions: {
+                                product: { caption: "Product", uniqueName: "product" },
+                                category: { caption: "Category", uniqueName: "category" },
+                                year: { caption: "Year", uniqueName: "year" }
+                            },
+                            measures: {
+                                amount: {
+                                    field: "amount",
+                                    aggregate: "sum",
+                                    format: "{0:c}",
+                                    caption: "Total Amount"
+                                }
+                            }
+                        }
+                    },
+                    columns: [{ name: "year" }],
+                    rows: [{ name: "category" }, { name: "product" }],
+                    measures: ["amount"]
+                },
+                height: 400,
+                columnWidth: 120
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<base href="https://demos.telerik.com/kendo-ui/pivotgrid/index" />
+		<style>
+			html {
+				font-size: 14px;
+				font-family: Arial, Helvetica, sans-serif;
+			}
+		</style>
+		<title></title>
+		<link
+			href="https://kendo.cdn.telerik.com/themes/11.0.2/default/default-main.css"
+			rel="stylesheet"
+		/>
+		<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+		<script src="https://kendo.cdn.telerik.com/2025.2.702/js/kendo.all.min.js"></script>
+	</head>
+	<body>
+		<hr />
+		<div id="chart"></div>
+		<div id="stockChart"></div>
+		<style>
+			.selected-cell {
+				background-color: rgba(0, 123, 255, 0.2);
+				outline: 2px solid #007bff;
+			}
+			.chart-container {
+				margin: 20px 0;
+				padding: 10px;
+				border: 1px solid #ddd;
+				border-radius: 5px;
+			}
+			.k-pivotgrid-total {
+				background-color: #ffe0ef !important;
+			}
+
+			/* Estilo para celdas de totales */
+			.k-alt {
+				background-color: #ffb347 !important;
+				color: black !important;
+				font-weight: bold !important;
+			}
+
+			/* Estilo para headers de totales */
+			.k-grid-header-table .k-table-tbody tr th.k-alt {
+				background-color: #ffb347 !important;
+				color: black !important;
+				font-weight: bold !important;
+			}
+		</style>
+		<div style="margin-bottom: 20px">
+			<button id="refreshPivotData">Refrescar Datos</button>
+		</div>
+		<div id="pivotgrid" style="margin-bottom: 20px"></div>
+		<button id="showChart">Mostrar Chart desde Pivot HTML</button>
+		<button id="showStockChart">Mostrar Stock Chart</button>
+		<script>
+			var pivotGrid;
+			var processedData = {};
+			var sampleData = [];
+
+			sampleData = [
+				{
+					PASFundName: "Ardsley - MAP MLH291_00",
+					fundid: 1494,
+					managername: "Ardsley - MAP MLH291_00",
+					securitydescription: "BRISTOL-MYERS SQUIBB CO",
+					assetclass: "Equity",
+					securitytype: "Common Share",
+					gicssector: "Health Care",
+					region: "Unassigned",
+					country: "USA",
+					lhExposure: 207.7516,
+					marketvalue: 207.7516,
+					NetNotional: 207.7516,
+					attributiondate: "2025-03-13T00:00:00",
+					FundIDFK: 1494,
+					Net_lhExposure: 207.7516,
+					Gross_lhExposure: 207.7516,
+					Contribution: 9.242525503308228,
+					Pnl: 100,
+					NMV: 8.880125150779678,
+					GMV: 8.880125150779678,
+				},
+				{
+					PASFundName: "Ardsley - MAP MLH291_00",
+					fundid: 1494,
+					managername: "Ardsley - MAP MLH291_00",
+					securitydescription: "TERADYNE INC",
+					assetclass: "Equity",
+					securitytype: "Common Share 2",
+					gicssector: "Information Technology",
+					region: "Unassigned",
+					country: "USA",
+					lhExposure: 0.0,
+					marketvalue: 0.0,
+					NetNotional: 0.0,
+					attributiondate: "2025-03-14T00:00:00",
+					FundIDFK: 1494,
+					Net_lhExposure: 0.0,
+					Gross_lhExposure: 0.0,
+					Contribution: 1.180418358114624,
+					Pnl: 200,
+					NMV: 0.0,
+					GMV: 1,
+				},
+				{
+					PASFundName: "Ardsley - MAP MLH291_00",
+					fundid: 1494,
+					managername: "Ardsley - MAP MLH291_00",
+					securitydescription: "TERADYNE INC",
+					assetclass: "Equity",
+					securitytype: "Common Share 3",
+					gicssector: "Information Technology",
+					region: "Unassigned",
+					country: "USA",
+					lhExposure: 0.0,
+					marketvalue: 0.0,
+					NetNotional: 0.0,
+					attributiondate: "2025-03-14T00:00:00",
+					FundIDFK: 1494,
+					Net_lhExposure: 0.0,
+					Gross_lhExposure: 0.0,
+					Contribution: 2.180418358114624,
+					Pnl: 300,
+					NMV: 4,
+					GMV: 3,
+				},
+			];
+
+			console.log("📊 Datos cargados:", sampleData.length, "registros");
+
+			// Inicializar el PivotGrid inmediatamente
+			$(document).ready(function () {
+				// Limpiar estado global al cargar la página
+				window.pivotGridInitialized = false;
+				window.expansionCompleted = false;
+
+				initializePivotGrid();
+			});
+
+			function initializePivotGrid() {
+				pivotgrid = $("#pivotgrid")
+					.kendoPivotGrid({
+						dataSource: {
+							data: sampleData,
+							schema: {
+								model: {
+									fields: {
+										PASFundName: { type: "string" },
+										fundid: { type: "number" },
+										managername: { type: "string" },
+										securitydescription: { type: "string" },
+										assetclass: { type: "string" },
+										securitytype: { type: "string" },
+										gicssector: { type: "string" },
+										region: { type: "string" },
+										country: { type: "string" },
+										lhExposure: { type: "number" },
+										marketvalue: { type: "number" },
+										NetNotional: { type: "number" },
+										attributiondate: { type: "string" },
+										FundIDFK: { type: "number" },
+										Net_lhExposure: { type: "number" },
+										Gross_lhExposure: { type: "number" },
+										Contribution: { type: "number" },
+										Pnl: { type: "number" },
+										NMV: { type: "number" },
+										GMV: { type: "number" },
+									},
+								},
+								cube: {
+									dimensions: {
+										PASFundName: { caption: "PASFundName" },
+										fundid: { caption: "fundid" },
+										managername: {
+											caption: "managername",
+										},
+										securitydescription: {
+											caption: "securitydescription",
+										},
+										assetclass: {
+											caption: "assetclass",
+										},
+										securitytype: { caption: "securitytype" },
+										gicssector: {
+											caption: "gicssector",
+										},
+										region: { caption: "region" },
+										country: { caption: "country" },
+										attributiondate: {
+											caption: "attributiondate",
+										},
+										FundIDFK: { caption: "FundIDFK" },
+									},
+									measures: {
+										Contribution: {
+											field: "Contribution",
+											aggregate: "sum",
+											format: "{0:n2}",
+										},
+										Pnl: {
+											field: "Pnl",
+											aggregate: "sum",
+											format: "{0:n2}",
+										},
+										NMV: {
+											field: "NMV",
+											aggregate: "sum",
+											format: "{0:n2}",
+										},
+										GMV: {
+											field: "GMV",
+											aggregate: "sum",
+											format: "{0:n2}",
+										},
+									},
+								},
+							},
+							rows: [
+								{ name: "PASFundName", expand: true },
+								{ name: "securitytype", expand: true },
+							],
+							columns: [{ name: "attributiondate", expand: true }, { name: "country", expand: true }],
+							measures: ["Contribution", "Pnl"],
+							expand: true,
+						},
+						height: 400,
+						dataBound: function () {
+							pivotGrid = this;
+							console.log(
+								"entra por databound",
+							);
+						},
+					})
+					.data("kendoPivotGrid");
+			}
+
+			// Evento para refrescar datos del PivotGrid
+			document.getElementById("refreshPivotData").onclick = function () {
+				if (pivotGrid) {
+					pivotGrid.dataSource.read();
+					console.log("✅ Datos del PivotGrid refrescados");
+				}
+			};
+
+			// Evento para mostrar el Chart normal
+			document.getElementById("showChart").onclick = function () {
+				console.log(
+					"🚀 Iniciando proceso de extracción de datos desde dataSource..."
+				);
+
+				// Obtener datos directamente del dataSource
+				var chartData = getChartDataFromDataSource();
+				
+				if (!chartData || !chartData.hasData) {
+					$("#chart").html(
+						'<div style="text-align: center; padding: 50px; color: #666; font-size: 16px;">📊 <strong>Sin datos disponibles</strong><br><br>No se encontraron datos específicos en el PivotGrid.<br><br><small>💡 Tip: Expande las dimensiones en el PivotGrid para ver datos detallados</small></div>'
+					);
+					return;
+				}
+
+				console.log("✅ Datos obtenidos desde dataSource:", chartData);
+
+				// Crear el chart con los datos del dataSource
+				$("#chart").kendoChart({
+					title: {
+						text: "Datos desde PivotGrid DataSource",
+					},
+					series: chartData.series,
+					categoryAxis: {
+						categories: chartData.categories,
+						type: "category",
+						labels: {
+							rotation: "auto",
+						},
+						position: "bottom",
+						crosshair: {
+							visible: true,
+						},
+					},
+					valueAxis: {
+						labels: {
+							format: "N0",
+						},
+						axisCrossingValue: 0,
+						position: "left",
+					},
+					tooltip: {
+						visible: true,
+						format: "{0}",
+					},
+					legend: {
+						visible: true,
+					},
+				});
+			};
+
+			// Evento para mostrar el Stock Chart
+			document.getElementById("showStockChart").onclick = function () {
+				console.log(
+					"🚀 Iniciando proceso de extracción de datos desde dataSource para Stock Chart..."
+				);
+
+				// Obtener datos directamente del dataSource
+				var chartData = getChartDataFromDataSource();
+
+				if (!chartData || !chartData.hasData) {
+					$("#stockChart").html(
+						'<div style="text-align: center; padding: 50px; color: #666; font-size: 16px;">📈 <strong>Sin datos disponibles</strong><br><br>No se encontraron datos específicos en el PivotGrid.<br><br><small>💡 Tip: Expande las dimensiones en el PivotGrid para ver datos detallados</small></div>'
+					);
+					return;
+				}
+
+				console.log(
+					"✅ Datos obtenidos desde dataSource para Stock Chart:",
+					chartData
+				);
+
+				// Crear el stock chart con los datos del dataSource
+				$("#stockChart").kendoStockChart({
+					title: {
+						text: "Stock Chart desde PivotGrid DataSource",
+					},
+					series: chartData.series,
+					categoryAxis: {
+						categories: chartData.categories,
+						type: "category",
+						labels: {
+							rotation: "auto",
+						},
+						position: "bottom",
+						crosshair: {
+							visible: true,
+						},
+					},
+					valueAxis: {
+						labels: {
+							format: "N0",
+						},
+						axisCrossingValue: 0,
+						position: "left",
+					},
+					tooltip: {
+						visible: true,
+						format: "{0}",
+					},
+					legend: {
+						visible: true,
+					},
+				});
+			};
+
+			// Función para obtener dinámicamente los nombres de los campos
+			function getDynamicFieldNames() {
+				var fieldNames = {
+					rowFields: [],
+					columnFields: [],
+					measureFields: [],
+				};
+
+				// Verificar que pivotGrid existe
+				if (!pivotGrid || !pivotGrid.element) {
+					console.warn("⚠️ PivotGrid no encontrado, usando campos por defecto");
+					return fieldNames;
+				}
+
+				try {
+					// Extraer campos de fila desde el DOM
+					var rowFieldChips = pivotGrid.element.find(
+						".k-settings-rows .k-chip-text"
+					);
+					rowFieldChips.each(function () {
+						var fieldName = $(this).text().trim();
+						if (fieldName) {
+							fieldNames.rowFields.push(fieldName);
+						}
+					});
+
+					// Extraer campos de columna desde el DOM
+					var columnFieldChips = pivotGrid.element.find(
+						".k-settings-columns .k-chip-text"
+					);
+					columnFieldChips.each(function () {
+						var fieldName = $(this).text().trim();
+						if (fieldName) {
+							fieldNames.columnFields.push(fieldName);
+						}
+					});
+
+					console.log(
+						"🔧 Campos de columna encontrados:",
+						fieldNames.columnFields
+					);
+
+					// Extraer medidas desde el DOM
+					var measureChips = pivotGrid.element.find(
+						".k-settings-measures .k-chip-text"
+					);
+					measureChips.each(function () {
+						var measureName = $(this).text().trim();
+						if (measureName) {
+							fieldNames.measureFields.push(measureName);
+						}
+					});
+
+					console.log("🔧 Campos dinámicos encontrados:", fieldNames);
+					return fieldNames;
+				} catch (e) {
+					console.error("❌ Error obteniendo campos dinámicos:", e);
+					return fieldNames;
+				}
+			}
+
+			// Nueva función para obtener datos directamente del dataSource del PivotGrid
+			function getChartDataFromDataSource() {
+				if (!pivotGrid) {
+					console.error("❌ PivotGrid no está inicializado");
+					return null;
+				}
+
+				console.log("🔍 Obteniendo datos desde dataSource del PivotGrid...");
+				
+				var dataSource = pivotGrid.dataSource;
+				var chartData = {
+					series: [],
+					categories: [],
+					hasData: false
+				};
+
+				try {
+					// 1. Obtener configuración actual
+					var rows = dataSource.rows();
+					var columns = dataSource.columns();
+					var measures = dataSource.measures();
+
+					console.log("📊 Configuración actual:");
+					console.log("   - Rows:", rows);
+					console.log("   - Columns:", columns);
+					console.log("   - Measures:", measures);
+
+					// 2. Generar categorías (eje X) basadas en las columnas
+					chartData.categories = generateCategoriesFromColumns(columns, measures);
+					console.log("📊 Categorías generadas:", chartData.categories);
+
+					// 3. Generar series basadas en las filas usando sampleData directamente
+					chartData.series = generateSeriesFromRows(rows, columns, measures);
+					console.log("📊 Series generadas:", chartData.series.length);
+
+					// 4. Verificar si hay datos
+					chartData.hasData = chartData.series.length > 0 && chartData.categories.length > 0;
+
+					console.log("✅ Datos obtenidos desde dataSource:", chartData);
+					return chartData;
+
+				} catch (error) {
+					console.error("❌ Error obteniendo datos desde dataSource:", error);
+					return null;
+				}
+			}
+
+			// Función para generar categorías desde las columnas
+			function generateCategoriesFromColumns(columns, measures) {
+				var categories = [];
+				var fieldNames = getDynamicFieldNames();
+
+				if (!fieldNames || !fieldNames.columnFields) {
+					console.warn("⚠️ No se pudieron obtener los campos de columna");
+					return categories;
+				}
+
+				// Obtener valores únicos para cada campo de columna
+				var columnValues = {};
+				fieldNames.columnFields.forEach(function(fieldName) {
+					columnValues[fieldName] = [];
+					sampleData.forEach(function(item) {
+						if (item[fieldName] && !columnValues[fieldName].includes(item[fieldName])) {
+							columnValues[fieldName].push(item[fieldName]);
+						}
+					});
+				});
+
+				console.log("📊 Valores únicos por campo:", columnValues);
+
+				// Generar todas las combinaciones posibles de valores de columna
+				var combinations = generateColumnCombinations(columnValues, fieldNames.columnFields);
+				
+				// Combinar cada combinación con cada medida
+				combinations.forEach(function(combination) {
+					measures.forEach(function(measure) {
+						var measureName = measure.name || measure.field || measure;
+						var categoryParts = [];
+						
+						// Agregar cada valor de columna formateado
+						fieldNames.columnFields.forEach(function(fieldName, index) {
+							var value = combination[index];
+							var formattedValue = formatColumnValue(value);
+							categoryParts.push(formattedValue);
+						});
+						
+						// Agregar la medida al final
+						categoryParts.push(measureName);
+						
+						var category = categoryParts.join(" | ");
+						categories.push(category);
+					});
+				});
+
+				return categories;
+			}
+			
+			// Función auxiliar para generar todas las combinaciones de valores de columna
+			function generateColumnCombinations(columnValues, columnFields) {
+				var combinations = [];
+				
+				// Función recursiva para generar combinaciones
+				function generateCombination(currentCombination, fieldIndex) {
+					if (fieldIndex === columnFields.length) {
+						combinations.push([...currentCombination]);
+						return;
+					}
+					
+					var fieldName = columnFields[fieldIndex];
+					var values = columnValues[fieldName];
+					
+					values.forEach(function(value) {
+						currentCombination[fieldIndex] = value;
+						generateCombination(currentCombination, fieldIndex + 1);
+					});
+				}
+				
+				generateCombination([], 0);
+				return combinations;
+			}
+
+			// Función para generar series desde las filas
+			function generateSeriesFromRows(rows, columns, measures) {
+				var series = [];
+				var fieldNames = getDynamicFieldNames();
+
+				if (!fieldNames || !fieldNames.rowFields) {
+					console.warn("⚠️ No se pudieron obtener los campos de fila");
+					return series;
+				}
+
+				// Obtener valores únicos para cada campo de fila
+				var rowValues = {};
+				fieldNames.rowFields.forEach(function(fieldName) {
+					rowValues[fieldName] = [];
+					sampleData.forEach(function(item) {
+						if (item[fieldName] && !rowValues[fieldName].includes(item[fieldName])) {
+							rowValues[fieldName].push(item[fieldName]);
+						}
+					});
+				});
+
+				console.log("📊 Valores únicos por campo de fila:", rowValues);
+
+				// Generar todas las combinaciones posibles de valores de fila
+				var combinations = generateRowCombinations(rowValues, fieldNames.rowFields);
+				
+				// Crear una serie para cada combinación
+				combinations.forEach(function(combination) {
+					var seriesName = combination.join(" | ");
+					var seriesData = generateSeriesData(combination, columns, measures);
+					if (seriesData.length > 0) {
+						series.push({
+							name: seriesName,
+							data: seriesData,
+							type: "line"
+						});
+					}
+				});
+
+				return series;
+			}
+			
+			// Función auxiliar para generar todas las combinaciones de valores de fila
+			function generateRowCombinations(rowValues, rowFields) {
+				var combinations = [];
+				
+				// Función recursiva para generar combinaciones
+				function generateCombination(currentCombination, fieldIndex) {
+					if (fieldIndex === rowFields.length) {
+						combinations.push([...currentCombination]);
+						return;
+					}
+					
+					var fieldName = rowFields[fieldIndex];
+					var values = rowValues[fieldName];
+					
+					values.forEach(function(value) {
+						currentCombination[fieldIndex] = value;
+						generateCombination(currentCombination, fieldIndex + 1);
+					});
+				}
+				
+				generateCombination([], 0);
+				return combinations;
+			}
+
+			// Función para generar datos de una serie
+			function generateSeriesData(rowValue, columns, measures) {
+				var seriesData = [];
+				var categories = generateCategoriesFromColumns(columns, measures);
+				var fieldNames = getDynamicFieldNames();
+
+				categories.forEach(function(category, index) {
+					var value = calculateValueForCategory(rowValue, category, fieldNames);
+					seriesData.push({
+						category: category,
+						value: value
+					});
+				});
+
+				return seriesData;
+			}
+
+			// Función para calcular el valor para una categoría específica
+			function calculateValueForCategory(rowValue, category, fieldNames) {
+				var totalValue = 0;
+				
+				// Parsear la categoría para obtener los valores de columna y medida
+				var parts = category.split(" | ");
+				var measureName = parts[parts.length - 1];
+				
+				console.log("🔍 === CALCULANDO VALOR ===");
+				console.log("📊 Fila:", rowValue);
+				console.log("📊 Categoría:", category);
+				console.log("📊 Medida:", measureName);
+				
+				// Crear un objeto con los valores esperados de columna
+				var expectedColumnValues = {};
+				fieldNames.columnFields.forEach(function(fieldName, index) {
+					expectedColumnValues[fieldName] = parts[index];
+				});
+				
+				console.log("📊 Valores esperados de columna:", expectedColumnValues);
+				
+				// Buscar en los datos originales y SUMAR todos los que coincidan
+				sampleData.forEach(function(item, index) {
+					var rowMatch = true;
+					var columnMatch = true;
+					
+					// Verificar coincidencia de fila
+					if (Array.isArray(rowValue)) {
+						// Múltiples campos de fila
+						fieldNames.rowFields.forEach(function(fieldName, fieldIndex) {
+							if (item[fieldName] !== rowValue[fieldIndex]) {
+								rowMatch = false;
+							}
+						});
+					} else {
+						// Un solo campo de fila
+						if (fieldNames.rowFields.length > 0) {
+							var fieldName = fieldNames.rowFields[0];
+							if (item[fieldName] !== rowValue) {
+								rowMatch = false;
+							}
+						}
+					}
+					
+					// Verificar coincidencia de columna (dinámico para cualquier cantidad)
+					fieldNames.columnFields.forEach(function(fieldName) {
+						var expectedValue = expectedColumnValues[fieldName];
+						var actualValue = item[fieldName];
+						
+						// Detectar si es un campo de fecha y formatearlo
+						if (isDateField(actualValue)) {
+							var formattedDate = new Date(actualValue).toLocaleDateString();
+							if (formattedDate !== expectedValue) {
+								columnMatch = false;
+							}
+						} else {
+							if (actualValue !== expectedValue) {
+								columnMatch = false;
+							}
+						}
+					});
+					
+					// Si coinciden fila y columna, SUMAR el valor de la medida
+					if (rowMatch && columnMatch) {
+						var itemValue = parseFloat(item[measureName]) || 0;
+						totalValue += itemValue;
+						console.log(`✅ Coincidencia: ${itemValue} (total: ${totalValue})`);
+					}
+				});
+				
+				console.log(`📊 Valor final: ${totalValue}\n`);
+				return totalValue;
+			}
+			
+			// Función auxiliar para detectar si un valor es una fecha
+			function isDateField(value) {
+				if (!value) return false;
+				// Verificar si es una fecha ISO o similar
+				return typeof value === 'string' && (
+					value.includes('T') || 
+					value.includes('-') || 
+					value.includes('/')
+				) && !isNaN(new Date(value).getTime());
+			}
+
+			// Función para formatear valores de columna
+			function formatColumnValue(value) {
+				if (value && value.includes("-") && value.includes("T")) {
+					try {
+						return new Date(value).toLocaleDateString();
+					} catch (e) {
+						return value;
+					}
+				}
+				return value;
+			}
+
+			
+		</script>
+	</body>
+</html>

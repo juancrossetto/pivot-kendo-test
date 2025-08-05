@@ -1,0 +1,175 @@
+{
+    "modelFields": {
+        "PASFundName": {
+            "type": "string"
+        },
+        "fundid": {
+            "type": "number"
+        },
+        "managername": {
+            "type": "string"
+        },
+        "securitydescription": {
+            "type": "string"
+        },
+        "assetclass": {
+            "type": "string"
+        },
+        "securitytype": {
+            "type": "string"
+        },
+        "gicssector": {
+            "type": "string"
+        },
+        "region": {
+            "type": "string"
+        },
+        "country": {
+            "type": "string"
+        },
+        "lhExposure": {
+            "type": "number"
+        },
+        "marketvalue": {
+            "type": "number"
+        },
+        "NetNotional": {
+            "type": "number"
+        },
+        "attributiondate": {
+            "type": "string"
+        },
+        "FundIDFK": {
+            "type": "number"
+        },
+        "Net_lhExposure": {
+            "type": "number"
+        },
+        "Gross_lhExposure": {
+            "type": "number"
+        },
+        "Contribution": {
+            "type": "number"
+        },
+        "Pnl": {
+            "type": "number"
+        },
+        "NMV": {
+            "type": "number"
+        },
+        "GMV": {
+            "type": "number"
+        }
+    },
+    "dimensions": {
+        "PASFundName": {
+            "uniqueName": "PASFundName",
+            "caption": "PASFundName"
+        },
+        "fundid": {
+            "uniqueName": "fundid",
+            "caption": "fundid"
+        },
+        "managername": {
+            "uniqueName": "managername",
+            "caption": "managername"
+        },
+        "securitydescription": {
+            "uniqueName": "securitydescription",
+            "caption": "securitydescription"
+        },
+        "assetclass": {
+            "uniqueName": "assetclass",
+            "caption": "assetclass"
+        },
+        "securitytype": {
+            "uniqueName": "securitytype",
+            "caption": "securitytype"
+        },
+        "gicssector": {
+            "uniqueName": "gicssector",
+            "caption": "gicssector"
+        },
+        "region": {
+            "uniqueName": "region",
+            "caption": "region"
+        },
+        "country": {
+            "uniqueName": "country",
+            "caption": "country"
+        },
+        "attributiondate": {
+            "uniqueName": "attributiondate",
+            "caption": "attributiondate"
+        },
+        "FundIDFK": {
+            "uniqueName": "FundIDFK",
+            "caption": "FundIDFK"
+        }
+    },
+    "measures": {
+        "lhExposure": {
+            "field": "lhExposure",
+            "aggregate": "sum",
+            "format": "{0:n2}"
+        },
+        "marketvalue": {
+            "field": "marketvalue",
+            "format": "{0:n2}"
+        },
+        "NetNotional": {
+            "field": "NetNotional",
+            "aggregate": "sum",
+            "format": "{0:n2}"
+        },
+        "Net_lhExposure": {
+            "field": "Net_lhExposure",
+            "aggregate": "sum",
+            "format": "{0:n2}"
+        },
+        "Gross_lhExposure": {
+            "field": "Gross_lhExposure",
+            "aggregate": "sum",
+            "format": "{0:n2}"
+        },
+        "Contribution": {
+            "field": "Contribution",
+            "format": "{0:n2}"
+        },
+        "Pnl": {
+            "field": "Pnl",
+            "format": "{0:n2}"
+        },
+        "NMV": {
+            "field": "NMV",
+            "aggregate": "sum",
+            "format": "{0:n2}"
+        },
+        "GMV": {
+            "field": "GMV",
+            "format": "{0:n2}"
+        }
+    },
+    "rows": [
+        {
+            "name": "PASFundName",
+            "expand": true
+        },
+        {
+            "name": "securitytype",
+            "expand": true
+        }
+    ],
+    "columns": [
+        {
+            "name": "attributiondate",
+            "expand": true
+        }
+    ],
+    "measureKeys": [
+        "GMV",
+        "Pnl",
+        "Contribution",
+        "marketvalue"
+    ]
+} 

@@ -1,0 +1,47 @@
+// Datos para el PivotGrid
+window.sampleData = [
+  {
+    "Fund Name": "Ardmore Road - MAP PPCEHMS_13",
+    "FundID": 1234,
+    "Manager": "Ardmore Road - MAP PPCEHMS_13",
+    "Security": "AMC NETWORKS INC",
+    "Asset Class": "Equity",
+    "Security Type": "Common Share",
+    "GICS Sector": "Communication Services",
+    "Region_": "Unassigned",
+    " Country": "USA",
+    "LH Exposure": 180.2291,
+    "Market Value": 180.2291,
+    "Net Notional": 180.2291,
+    "Attribution Date": "07/29/2025",
+    "Fund ID": 1234,
+    "Net LH Exposure": 180.2291,
+    "Gross LH Exposure": 180.2291,
+    "Contribution": -1.74955166442271e-8,
+    "PnL": -1.1573,
+    "Net Market Value": 0.000002724618697679142,
+    "GMV": 0.000002724618697679142
+  },
+  {
+    "Fund Name": "Ardmore Road - MAP PPCEHMS_13",
+    "FundID": 1234,
+    "Manager": "Ardmore Road - MAP PPCEHMS_13",
+    "Security": "SCHOLAR ROCK HLDG CORP",
+    "Asset Class": "Equity",
+    "Security Type": "Common Share",
+    "GICS Sector": "Health Care",
+    "Region_": "Unassigned",
+    " Country": "USA",
+    "LH Exposure": 2768.7531,
+    "Market Value": 2768.7531,
+    "Net Notional": 2768.7531,
+    "Attribution Date": "07/29/2025",
+    "Fund ID": 1234,
+    "Net LH Exposure": 2768.7531,
+    "Gross LH Exposure": 2768.7531,
+    "Contribution": -2.687821119640852e-7,
+    "PnL": -17.7795,
+    "Net Market Value": 0.00004185670607863595,
+    "GMV": 0.00004185670607863595
+  }
+]; 

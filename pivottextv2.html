@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<base href="https://demos.telerik.com/kendo-ui/pivotgrid/index" />
+		<style>
+			html {
+				font-size: 14px;
+				font-family: Arial, Helvetica, sans-serif;
+			}
+		</style>
+		<title></title>
+		<link
+			href="https://kendo.cdn.telerik.com/themes/11.0.2/default/default-main.css"
+			rel="stylesheet"
+		/>
+		<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+		<script src="https://kendo.cdn.telerik.com/2025.2.702/js/kendo.all.min.js"></script>
+	</head>
+	<body>
+		<hr />
+		<div id="chart"></div>
+		<div id="stockChart"></div>
+		<style>
+			.selected-cell {
+				background-color: rgba(0, 123, 255, 0.2);
+				outline: 2px solid #007bff;
+			}
+			.chart-container {
+				margin: 20px 0;
+				padding: 10px;
+				border: 1px solid #ddd;
+				border-radius: 5px;
+			}
+			.k-pivotgrid-total {
+				background-color: #ffe0ef !important;
+			}
+		</style>
+		<div style="margin-bottom: 20px">
+			<label for="hideTotalsSwitch">Ocultar totales en PivotGrid:</label>
+			<input id="hideTotalsSwitch" />
+		</div>
+		<div id="pivotgrid" style="margin-bottom: 20px"></div>
+		<button id="showChart">Mostrar Chart desde Pivot HTML</button>
+		<button id="showStockChart">Mostrar Stock Chart</button>
+		<script>
+			var pivotGrid;
+			var processedData = {};
+			var sampleData = [];
+
+			sampleData = [
+				{
+					PASFundName: "Ardsley - MAP MLH291_00",
+					securitytype: "Common Share",
+					attributiondate: "2025-03-13T00:00:00",
+					PnL: 27,
+					GMV: 29,
+					NMV: 28,
+					Contribution: 26,
+				},
+				{
+					PASFundName: "Ardsley - MAP MLH291_00",
+					securitytype: "Common Share 2",
+					attributiondate: "2025-03-14T00:00:00",
+					PnL: 17,
+					GMV: 19,
+					NMV: 18,
+					Contribution: 16,
+				},
+				{
+					PASFundName: "Ardsley - MAP MLH291_00",
+					securitytype: "Common Share 3",
+					attributiondate: "2025-03-14T00:00:00",
+					PnL: 7,
+					GMV: 9,
+					NMV: 8,
+					Contribution: 6,
+				},
+			];
+
+			const measureKeys = ["PnL", "GMV", "NMV", "Contribution"];
+
+			// Transformar rawSampleData a pivotData
+			const pivotData = sampleData.flatMap((entry) =>
+				measureKeys.map((key) => ({
+					PASFundName: entry.PASFundName,
+					securitytype: entry.securitytype,
+					attributiondate: entry.attributiondate,
+					measureType: key,
+					value: entry[key],
+				}))
+			);
+
+			console.log("📊 Datos cargados:", sampleData.length, "registros");
+
+			// Inicializar el PivotGrid inmediatamente
+			$(document).ready(function () {
+				initializePivotGrid();
+				initializeSwitch();
+			});
+
+			function initializeSwitch() {
+				$("#hideTotalsSwitch").kendoSwitch({
+					checked: false,
+					messages: {
+						checked: "Sí",
+						unchecked: "No",
+					},
+					change: function (e) {
+						toggleTotals(e.checked);
+					},
+				});
+			}
+
+			function initializePivotGrid() {
+				pivotgrid = $("#pivotgrid")
+					.kendoPivotGridV2({
+						dataSource: {
+							data: pivotData,
+							// schema: {
+							// 	model: {
+							// 		fields: {
+							// 			PASFundName: { type: "string" },
+							// 			fundid: { type: "number" },
+							// 			managername: { type: "string" },
+							// 			securitydescription: { type: "string" },
+							// 			assetclass: { type: "string" },
+							// 			securitytype: { type: "string" },
+							// 			gicssector: { type: "string" },
+							// 			region: { type: "string" },
+							// 			country: { type: "string" },
+							// 			lhExposure: { type: "number" },
+							// 			marketvalue: { type: "number" },
+							// 			NetNotional: { type: "number" },
+							// 			attributiondate: { type: "string" },
+							// 			FundIDFK: { type: "number" },
+							// 			Net_lhExposure: { type: "number" },
+							// 			Gross_lhExposure: { type: "number" },
+							// 			Contribution: { type: "number" },
+							// 			Pnl: { type: "number" },
+							// 			NMV: { type: "number" },
+							// 			GMV: { type: "number" },
+							// 		},
+							// 	},
+							// 	cube: {
+							// 		dimensions: {
+							// 			PASFundName: { caption: "PASFundName" },
+							// 			fundid: { caption: "fundid" },
+							// 			managername: {
+							// 				caption: "managername",
+							// 			},
+							// 			securitydescription: {
+							// 				caption: "securitydescription",
+							// 			},
+							// 			assetclass: {
+							// 				caption: "assetclass",
+							// 			},
+							// 			securitytype: { caption: "securitytype" },
+							// 			gicssector: {
+							// 				caption: "gicssector",
+							// 			},
+							// 			region: { caption: "region" },
+							// 			country: { caption: "country" },
+							// 			attributiondate: {
+							// 				caption: "attributiondate",
+							// 			},
+							// 			FundIDFK: { caption: "FundIDFK" },
+							// 		},
+							// 		measures: {
+							// 			Contribution: {
+							// 				field: "Contribution",
+							// 				aggregate: "sum",
+							// 				format: "{0:n2}",
+							// 			},
+							// 			Pnl: {
+							// 				field: "Pnl",
+							// 				aggregate: "sum",
+							// 				format: "{0:n2}",
+							// 			},
+							// 			NMV: {
+							// 				field: "NMV",
+							// 				aggregate: "sum",
+							// 				format: "{0:n2}",
+							// 			},
+							// 			GMV: {
+							// 				field: "GMV",
+							// 				aggregate: "sum",
+							// 				format: "{0:n2}",
+							// 			},
+							// 		},
+							// 	},
+							// },
+							schema: {
+								model: {
+									fields: {
+										PASFundName: { type: "string" },
+										securitytype: { type: "string" },
+										attributiondate: { type: "string" },
+										measureType: { type: "string" },
+										value: { type: "number" },
+									},
+								},
+								cube: {
+									dimensions: {
+										PASFundName: { caption: "PASFundName" },
+										securitytype: { caption: "securitytype" },
+										attributiondate: { caption: "attributiondate" },
+										measureType: { caption: "Measure" },
+									},
+									measures: {
+										value: {
+											field: "value",
+											aggregate: "sum",
+											format: "{0:n2}",
+										},
+									},
+								},
+							},
+							rows: [
+								{ name: "PASFundName", expand: true },
+								{ name: "securitytype", expand: true },
+							],
+							columns: [
+								{ name: "attributiondate", expand: true },
+								{ name: "measureType", expand: true },
+							],
+							// measureKeys: ["GMV", "Pnl", "Contribution", "marketvalue"],
+							// measures: ["GMV", "Pnl"],
+							measures: ["value"],
+							// measures: ["Contribution", "Pnl", "NMV", "GMV"],
+						},
+						height: 400,
+						dataBound: function () {
+							pivotGrid = this;
+							processPivotData();
+							var switchState = isSwitchChecked();
+							console.log(
+								"entra por databound",
+								isSwitchChecked(),
+								switchState
+							);
+
+							// Aplicar el estado del switch después de que se carguen los datos
+							setTimeout(function () {
+								if (isSwitchChecked()) {
+									console.log("Aplicando estado del switch: ocultar totales");
+									toggleTotals(true);
+								}
+							}, 100);
+						},
+					})
+					.data("kendoPivotGridV2");
+			}
+			// Función helper para verificar el estado del switch de manera segura
+			function isSwitchChecked() {
+				// var switchWidget = $("#hideTotalsSwitch").data("kendoSwitch");
+				// return (
+				// 	switchWidget &&
+				// 	typeof switchWidget.checked === "function" &&
+				// 	switchWidget.check()
+				// );
+				var element = $("#hideTotalsSwitch");
+				var switchWidget = element.data("kendoSwitch");
+
+				if (!switchWidget) {
+					console.warn(
+						"isSwitchChecked: Widget kendoSwitch no encontrado en #hideTotalsSwitch"
+					);
+					// console.trace(); // Descomenta para ver la pila de llamadas
+					return false; // o undefined, dependiendo de tu lógica
+				}
+
+				// Verificar si el método 'check' existe
+				if (typeof switchWidget.check !== "function") {
+					console.warn(
+						"isSwitchChecked: El widget encontrado no tiene el método 'check'"
+					);
+					return false;
+				}
+
+				var isChecked = switchWidget.check();
+				// console.log("isSwitchChecked: Estado del switch es", isChecked); // Para depuración
+				return isChecked;
+			}
+
+			function toggleTotals(hide) {
+				if (!pivotgrid) return;
+
+				// Obtener la cantidad de medidas
+				var measureCount = pivotgrid.dataSource.measures().length;
+
+				// Ocultar/mostrar filas de totales
+				var lastRows = pivotgrid.element.find(
+					".k-pivotgrid-values .k-pivotgrid-tbody tr:last-child, .k-pivotgrid-row-headers .k-pivotgrid-tbody tr:last-child"
+				);
+				if (hide) {
+					lastRows.hide();
+				} else {
+					lastRows.show();
+				}
+
+				// Ocultar/mostrar elementos de totales
+				var totalElements = pivotgrid.element.find(
+					".k-pivotgrid-total, .k-pivotgrid-header-total"
+				);
+				if (hide) {
+					totalElements.hide();
+				} else {
+					totalElements.show();
+				}
+
+				// Ocultar/mostrar las últimas 'measureCount' columnas (<col>)
+				var colElements = pivotgrid.element.find(
+					".k-pivotgrid-table colgroup col"
+				);
+				for (var i = 0; i < measureCount; i++) {
+					var colElement = colElements.eq(colElements.length - 1 - i);
+					if (hide) {
+						colElement.hide();
+					} else {
+						colElement.show();
+					}
+				}
+
+				var columnTotalHeaders = pivotgrid.element.find(
+					".k-pivotgrid-column-headers .k-pivotgrid-table colgroup col"
+				);
+				for (var i = 0; i < measureCount; i++) {
+					var columnTotalHeader = columnTotalHeaders.eq(
+						columnTotalHeaders.length - 1 - i
+					);
+					if (hide) {
+						columnTotalHeader.hide();
+					} else {
+						columnTotalHeader.show();
+					}
+				}
+
+				// También necesitamos ocultar las celdas (<td>) correspondientes en la última fila
+				var lastValueRow = pivotgrid.element.find(
+					".k-pivotgrid-values .k-pivotgrid-tbody tr:last-child"
+				);
+				if (lastValueRow.length > 0) {
+					var tdElements = lastValueRow.find("td");
+					for (var j = 0; j < measureCount; j++) {
+						var tdElement = tdElements.eq(tdElements.length - 1 - j);
+						if (hide) {
+							tdElement.hide();
+						} else {
+							tdElement.show();
+						}
+					}
+				}
+			}
+
+			function processPivotData() {
+				// Para PivotGridV2, obtenemos los datos de manera diferente
+				var dataSource = pivotGrid.dataSource;
+				var data = dataSource.data();
+				var data = dataSource.data();
+				console.log("📦 Datos del PivotGridV2:", data);
+
+				// 👇 Diagnóstico por celda
+				data.forEach((item) => {
+					const col = item.columnTuple?.members
+						?.map((m) => m.caption)
+						.join(" | ");
+					const row = item.rowTuple?.members?.map((m) => m.caption).join(" | ");
+					const measure = item.measure;
+					const value = item.data?.value;
+
+					console.log(
+						`🧩 Celda [${row}] x [${col}] - Measure: ${measure} → Valor: ${value}`
+					);
+				});
+
+				// Extraer encabezados de columnas (fechas) desde la estructura de tuplas
+				var columnHeaders = extractColumnHeadersV2(data);
+				console.log("📌 Encabezados de columnas:", columnHeaders);
+
+				// Extraer datos de filas (funds) desde la estructura de tuplas
+				var rowHeaders = extractRowHeadersV2(data);
+				console.log("📌 Encabezados de filas:", rowHeaders);
+
+				// Procesar datos para diferentes tipos de gráficos
+				processedData = {
+					columnHeaders: columnHeaders,
+					rowHeaders: rowHeaders,
+					data: data,
+					dataSource: dataSource,
+				};
+
+				console.log("✅ Datos procesados:", processedData);
+			}
+
+			// Funciones dinámicas para headers y series
+			function extractColumnHeadersV2(data) {
+				// Encuentra todas las combinaciones únicas de valores en columnTuple
+				var headers = [];
+				data.forEach(function (item) {
+					if (item.columnTuple && item.columnTuple.members) {
+						var key = item.columnTuple.members
+							.map((m) => m.caption)
+							.join(" | ");
+						// Filtrar totales: no incluir headers que contengan solo nombres de dimensiones
+						var isTotal = item.columnTuple.members.some(
+							(m) => m.caption === m.hierarchy
+						);
+						if (key && !headers.includes(key) && !isTotal) {
+							headers.push(key);
+						}
+					}
+				});
+				return headers;
+			}
+
+			function extractRowHeadersV2(data) {
+				// Encuentra todas las combinaciones únicas de valores en rowTuple
+				var headers = [];
+				data.forEach(function (item) {
+					if (item.rowTuple && item.rowTuple.members) {
+						var key = item.rowTuple.members.map((m) => m.caption).join(" | ");
+						// Filtrar totales: no incluir headers que contengan solo nombres de dimensiones
+						var isTotal = item.rowTuple.members.some(
+							(m) => m.caption === m.hierarchy
+						);
+						if (key && !headers.includes(key) && !isTotal) {
+							headers.push(key);
+						}
+					}
+				});
+				return headers;
+			}
+
+			function isTotalCell(item) {
+				// Solo considerar como totales las celdas que tienen dimensiones específicas como totales
+				// Por ejemplo: attributiondate como caption (sin fecha específica) indica total por fecha
+				var isTotal = false;
+
+				if (item.columnTuple && item.columnTuple.members) {
+					// Buscar si hay algún miembro que sea el nombre de la dimensión (sin valor específico)
+					isTotal = item.columnTuple.members.some((m) => {
+						var isTotalMember =
+							m.caption === m.hierarchy && m.hierarchy === "attributiondate";
+						return isTotalMember;
+					});
+				}
+
+				if (!isTotal && item.rowTuple && item.rowTuple.members) {
+					// Buscar si hay algún miembro que sea el nombre de la dimensión (sin valor específico)
+					isTotal = item.rowTuple.members.some((m) => {
+						var isTotalMember =
+							m.caption === m.hierarchy &&
+							(m.hierarchy === "PASFundName" || m.hierarchy === "securitytype");
+						return isTotalMember;
+					});
+				}
+
+				return isTotal;
+			}
+
+			function createDynamicChartSeries() {
+				if (
+					!processedData.data ||
+					!processedData.columnHeaders ||
+					!processedData.rowHeaders
+				) {
+					console.error("❌ No hay datos procesados disponibles");
+					return [];
+				}
+
+				// Console para comparar datos iniciales vs filtrados
+				console.log("📊 DATOS INICIALES (con totales):", processedData.data);
+
+				var totalCells = [];
+				var nonTotalCells = [];
+
+				processedData.data.forEach(function (item) {
+					if (isTotalCell(item)) {
+						totalCells.push(item);
+					} else {
+						nonTotalCells.push(item);
+					}
+				});
+
+				console.log("🚫 CELDAS DE TOTALES (excluidas):", totalCells);
+				console.log(
+					"✅ CELDAS SIN TOTALES (incluidas en chart):",
+					nonTotalCells
+				);
+				console.log("📈 Total de celdas:", processedData.data.length);
+				console.log("🚫 Celdas de totales excluidas:", totalCells.length);
+				console.log("✅ Celdas sin totales incluidas:", nonTotalCells.length);
+
+				var series = [];
+				console.log("📊 RowHeaders:", processedData.rowHeaders);
+				console.log("📊 ColumnHeaders:", processedData.columnHeaders);
+
+				processedData.rowHeaders.forEach(function (rowKey) {
+					var seriesData = [];
+					processedData.columnHeaders.forEach(function (colKey) {
+						// Buscar la celda que corresponde a esta combinación
+						var value = 0;
+						processedData.data.forEach(function (item) {
+							// Solo considerar celdas que NO son totales
+							if (isTotalCell(item)) return;
+							var itemColKey = item.columnTuple.members
+								.map((m) => m.caption)
+								.join(" | ");
+							var itemRowKey = item.rowTuple.members
+								.map((m) => m.caption)
+								.join(" | ");
+							if (itemColKey === colKey && itemRowKey === rowKey) {
+								value = parseFloat(item.data.value) || 0;
+							}
+						});
+						seriesData.push({
+							category: colKey,
+							value: value,
+						});
+					});
+					series.push({
+						name: rowKey,
+						data: seriesData,
+					});
+				});
+
+				console.log("📊 Series creadas:", series.length);
+				series.forEach(function (s, i) {
+					console.log(
+						"📊 Serie",
+						i,
+						":",
+						s.name,
+						"con",
+						s.data.length,
+						"puntos"
+					);
+				});
+				return series;
+			}
+
+			// Evento para mostrar el Chart normal
+			document.getElementById("showChart").onclick = function () {
+				if (
+					!processedData.data ||
+					!processedData.columnHeaders ||
+					!processedData.rowHeaders
+				) {
+					alert("❌ No hay datos del PivotGrid disponibles");
+					return;
+				}
+
+				var series = createDynamicChartSeries();
+
+				// Verificar si hay datos para mostrar
+				var hasData = series.some(function (serie) {
+					return serie.data.some(function (point) {
+						return point.value > 0;
+					});
+				});
+
+				if (!hasData) {
+					// Si no hay datos, mostrar mensaje informativo
+					$("#chart").html(
+						'<div style="text-align: center; padding: 50px; color: #666; font-size: 16px;">📊 <strong>PivotGrid colapsado</strong><br><br>Expande las dimensiones en el PivotGrid para ver datos específicos en el gráfico.<br><br><small>💡 Tip: Haz clic en los iconos + para expandir las filas y columnas</small></div>'
+					);
+					return;
+				}
+
+				$("#chart").kendoChart({
+					title: {
+						text: "Datos desde PivotGrid",
+					},
+					series: series.map(function (serie) {
+						return {
+							type: "line",
+							data: serie.data,
+							field: "value",
+							categoryField: "category",
+							name: serie.name,
+						};
+					}),
+					categoryAxis: {
+						type: "category",
+						labels: {
+							rotation: "auto",
+						},
+						position: "bottom",
+						crosshair: {
+							visible: true,
+						},
+					},
+					valueAxis: {
+						labels: {
+							format: "N0",
+						},
+						axisCrossingValue: 0,
+						position: "left",
+					},
+					tooltip: {
+						visible: true,
+						format: "{0}",
+					},
+					legend: {
+						visible: true,
+					},
+				});
+			};
+
+			// Evento para mostrar el Stock Chart
+			document.getElementById("showStockChart").onclick = function () {
+				if (
+					!processedData.data ||
+					!processedData.columnHeaders ||
+					!processedData.rowHeaders
+				) {
+					alert("❌ No hay datos del PivotGrid disponibles");
+					return;
+				}
+
+				var series = createDynamicChartSeries();
+
+				// Verificar si hay datos para mostrar
+				var hasData = series.some(function (serie) {
+					return serie.data.some(function (point) {
+						return point.value > 0;
+					});
+				});
+
+				if (!hasData) {
+					// Si no hay datos, mostrar mensaje informativo
+					$("#stockChart").html(
+						'<div style="text-align: center; padding: 50px; color: #666; font-size: 16px;">📈 <strong>PivotGrid colapsado</strong><br><br>Expande las dimensiones en el PivotGrid para ver datos específicos en el gráfico.<br><br><small>💡 Tip: Haz clic en los iconos + para expandir las filas y columnas</small></div>'
+					);
+					return;
+				}
+
+				$("#stockChart").kendoStockChart({
+					title: {
+						text: "Stock Chart desde PivotGrid",
+					},
+					series: series.map(function (serie) {
+						return {
+							type: "line",
+							data: serie.data,
+							field: "value",
+							categoryField: "category",
+							name: serie.name,
+						};
+					}),
+					categoryAxis: {
+						type: "category",
+						labels: {
+							rotation: "auto",
+						},
+						position: "bottom",
+						crosshair: {
+							visible: true,
+						},
+					},
+					valueAxis: {
+						labels: {
+							format: "N0",
+						},
+						axisCrossingValue: 0,
+						position: "left",
+					},
+					tooltip: {
+						visible: true,
+						format: "{0}",
+					},
+					legend: {
+						visible: true,
+					},
+				});
+			};
+		</script>
+	</body>
+</html>

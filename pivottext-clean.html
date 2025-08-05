@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<base href="https://demos.telerik.com/kendo-ui/pivotgrid/index" />
+		<style>
+			html {
+				font-size: 14px;
+				font-family: Arial, Helvetica, sans-serif;
+			}
+		</style>
+		<title></title>
+		<link
+			href="https://kendo.cdn.telerik.com/themes/11.0.2/default/default-main.css"
+			rel="stylesheet"
+		/>
+		<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+		<script src="https://kendo.cdn.telerik.com/2025.2.702/js/kendo.all.min.js"></script>
+	</head>
+	<body>
+		<hr />
+		<div id="chart"></div>
+		<div id="stockChart"></div>
+		<style>
+			.selected-cell {
+				background-color: rgba(0, 123, 255, 0.2);
+				outline: 2px solid #007bff;
+			}
+			.chart-container {
+				margin: 20px 0;
+				padding: 10px;
+				border: 1px solid #ddd;
+				border-radius: 5px;
+			}
+			.k-pivotgrid-total {
+				background-color: #ffe0ef !important;
+			}
+
+			/* Estilo para celdas de totales */
+			.k-alt {
+				background-color: #ffb347 !important;
+				color: black !important;
+				font-weight: bold !important;
+			}
+
+			/* Estilo para headers de totales */
+			.k-grid-header-table .k-table-tbody tr th.k-alt {
+				background-color: #ffb347 !important;
+				color: black !important;
+				font-weight: bold !important;
+			}
+		</style>
+		<div style="margin-bottom: 20px">
+			<button id="refreshPivotData">Refrescar Datos</button>
+		</div>
+		<div id="pivotgrid" style="margin-bottom: 20px"></div>
+		<button id="showChart">Mostrar Chart desde Pivot HTML</button>
+		<button id="showStockChart">Mostrar Stock Chart</button>
+		<script>
+			var processedData = {};
+
+			// Function to get current PivotGrid
+			const getCurrentPivotGrid = () => {
+				return $("#pivotgrid").data("kendoPivotGrid");
+			};
+
+			// Function to get data from PivotGrid dataSource
+			const getDataFromPivotGrid = () => {
+				const pivotGrid = getCurrentPivotGrid();
+				if (!pivotGrid || !pivotGrid.dataSource) {
+					console.warn("⚠️ PivotGrid or dataSource not found");
+					return [];
+				}
+				
+				console.log("🔍 === DEBUGGING DATA SOURCE ===");
+				console.log("📊 PivotGrid:", pivotGrid);
+				console.log("📊 DataSource:", pivotGrid.dataSource);
+				console.log("📊 DataSource._rawData:", pivotGrid.dataSource._rawData);
+				console.log("📊 DataSource.data():", pivotGrid.dataSource.data());
+				console.log("📊 DataSource.view():", pivotGrid.dataSource.view());
+				
+				// Get raw data from pivotGrid.dataSource._rawData
+				const rawData = pivotGrid.dataSource._rawData || [];
+				console.log("📊 Raw data from PivotGrid:", rawData.length, "records");
+				console.log("📊 First record sample:", rawData[0]);
+				console.log("📊 All raw data:", rawData);
+				console.log("🔍 === END DEBUGGING DATA SOURCE ===");
+				
+				return rawData;
+			};
+
+			// Initialize PivotGrid immediately
+			$(document).ready(() => {
+				// Clear global state when loading the page
+				window.pivotGridInitialized = false;
+				window.expansionCompleted = false;
+
+				initializePivotGrid();
+			});
+
+			const initializePivotGrid = () => {
+				// Load data from JSON file
+				fetch('./sampleData.json')
+					.then(response => {
+						if (!response.ok) {
+							throw new Error(`HTTP error! status: ${response.status}`);
+						}
+						return response.json();
+					})
+					.then(initialData => {
+						console.log("📊 Data loaded from JSON file:", initialData.length, "records");
+						
+						// Configuration for PivotGrid
+						const config = {
+							modelFields: {
+								PASFundName: { type: "string" },
+								fundid: { type: "number" },
+								managername: { type: "string" },
+								securitydescription: { type: "string" },
+								assetclass: { type: "string" },
+								securitytype: { type: "string" },
+								gicssector: { type: "string" },
+								region: { type: "string" },
+								country: { type: "string" },
+								lhExposure: { type: "number" },
+								marketvalue: { type: "number" },
+								NetNotional: { type: "number" },
+								attributiondate: { type: "string" },
+								FundIDFK: { type: "number" },
+								Net_lhExposure: { type: "number" },
+								Gross_lhExposure: { type: "number" },
+								Contribution: { type: "number" },
+								Pnl: { type: "number" },
+								NMV: { type: "number" },
+								GMV: { type: "number" },
+							},
+							dimensions: {
+								PASFundName: { caption: "PASFundName" },
+								fundid: { caption: "fundid" },
+								managername: { caption: "managername" },
+								securitydescription: { caption: "securitydescription" },
+								assetclass: { caption: "assetclass" },
+								securitytype: { caption: "securitytype" },
+								gicssector: { caption: "gicssector" },
+								region: { caption: "region" },
+								country: { caption: "country" },
+								attributiondate: { caption: "attributiondate" },
+								FundIDFK: { caption: "FundIDFK" },
+							},
+							measures: {
+								Contribution: {
+									field: "Contribution",
+									aggregate: "sum",
+									format: "{0:n2}",
+								},
+								Pnl: {
+									field: "Pnl",
+									aggregate: "sum",
+									format: "{0:n2}",
+								},
+								NMV: {
+									field: "NMV",
+									aggregate: "sum",
+									format: "{0:n2}",
+								},
+								GMV: {
+									field: "GMV",
+									aggregate: "sum",
+									format: "{0:n2}",
+								},
+							},
+							rows: [
+								{ name: "PASFundName", expand: true },
+								{ name: "securitytype", expand: true },
+							],
+							columns: [
+								{ name: "attributiondate", expand: true },
+								{ name: "country", expand: true }
+							],
+							measureKeys: ["Contribution", "Pnl"],
+						};
+
+						$("#pivotgrid")
+							.kendoPivotGrid({
+								dataSource: {
+									data: initialData,
+									schema: {
+										model: { fields: config.modelFields },
+										cube: {
+											dimensions: config.dimensions,
+											measures: config.measures,
+										},
+									},
+									rows: config.rows,
+									columns: config.columns,
+									measures: config.measureKeys,
+									expand: true,
+								},
+								height: 400,
+								dataBound: function () {
+									console.log("enters through databound");
+								},
+							})
+							.data("kendoPivotGrid");
+					})
+					.catch(error => {
+						console.error("❌ Error loading data from JSON file:", error);
+					});
+			};
+
+			// Event to refresh PivotGrid data
+			document.getElementById("refreshPivotData").onclick = () => {
+				const pivotGrid = getCurrentPivotGrid();
+				if (pivotGrid) {
+					pivotGrid.dataSource.read();
+					console.log("✅ PivotGrid data refreshed");
+				}
+			};
+
+			// Event to show normal Chart
+			document.getElementById("showChart").onclick = () => {
+				console.log("🚀 Starting data extraction process from dataSource...");
+
+				// Get data directly from dataSource
+				const chartData = getChartDataFromDataSource();
+
+				if (!chartData || !chartData.hasData) {
+					$("#chart").html(
+						'<div style="text-align: center; padding: 50px; color: #666; font-size: 16px;">📊 <strong>No data available</strong><br><br>No specific data found in PivotGrid.<br><br><small>💡 Tip: Expand dimensions in PivotGrid to see detailed data</small></div>'
+					);
+					return;
+				}
+
+				console.log("✅ Data obtained from dataSource:", chartData);
+
+				// Create chart with dataSource data
+				$("#chart").kendoChart({
+					title: {
+						text: "Data from PivotGrid DataSource",
+					},
+					series: chartData.series,
+					categoryAxis: {
+						categories: chartData.categories,
+						type: "category",
+						labels: {
+							rotation: "auto",
+						},
+						position: "bottom",
+						crosshair: {
+							visible: true,
+						},
+					},
+					valueAxis: {
+						labels: {
+							format: "N0",
+						},
+						axisCrossingValue: 0,
+						position: "left",
+					},
+					tooltip: {
+						visible: true,
+						format: "{0}",
+					},
+					legend: {
+						visible: true,
+					},
+				});
+			};
+
+			// Event to show Stock Chart
+			document.getElementById("showStockChart").onclick = () => {
+				console.log(
+					"🚀 Starting data extraction process from dataSource for Stock Chart..."
+				);
+
+				// Get data directly from dataSource
+				const chartData = getChartDataFromDataSource();
+
+				if (!chartData || !chartData.hasData) {
+					$("#stockChart").html(
+						'<div style="text-align: center; padding: 50px; color: #666; font-size: 16px;">📈 <strong>No data available</strong><br><br>No specific data found in PivotGrid.<br><br><small>💡 Tip: Expand dimensions in PivotGrid to see detailed data</small></div>'
+					);
+					return;
+				}
+
+				console.log(
+					"✅ Data obtained from dataSource for Stock Chart:",
+					chartData
+				);
+
+				// Create stock chart with dataSource data
+				$("#stockChart").kendoStockChart({
+					title: {
+						text: "Stock Chart from PivotGrid DataSource",
+					},
+					series: chartData.series,
+					categoryAxis: {
+						categories: chartData.categories,
+						type: "category",
+						labels: {
+							rotation: "auto",
+						},
+						position: "bottom",
+						crosshair: {
+							visible: true,
+						},
+					},
+					valueAxis: {
+						labels: {
+							format: "N0",
+						},
+						axisCrossingValue: 0,
+						position: "left",
+					},
+					tooltip: {
+						visible: true,
+						format: "{0}",
+					},
+					legend: {
+						visible: true,
+					},
+				});
+			};
+
+			// Function to dynamically get field names
+			const getDynamicFieldNames = () => {
+				const fieldNames = {
+					rowFields: [],
+					columnFields: [],
+					measureFields: [],
+				};
+
+				// Verify that pivotGrid exists
+				const pivotGrid = getCurrentPivotGrid();
+				if (!pivotGrid || !pivotGrid.element) {
+					console.warn("⚠️ PivotGrid not found, using default fields");
+					return fieldNames;
+				}
+
+				try {
+					// Extract row fields from DOM
+					const rowFieldChips = pivotGrid.element.find(
+						".k-settings-rows .k-chip-text"
+					);
+					rowFieldChips.each(function () {
+						const fieldName = $(this).text().trim();
+						if (fieldName) {
+							fieldNames.rowFields.push(fieldName);
+						}
+					});
+
+					// Extract column fields from DOM
+					const columnFieldChips = pivotGrid.element.find(
+						".k-settings-columns .k-chip-text"
+					);
+					columnFieldChips.each(function () {
+						const fieldName = $(this).text().trim();
+						if (fieldName) {
+							fieldNames.columnFields.push(fieldName);
+						}
+					});
+
+					console.log(
+						"🔧 Column fields found:",
+						fieldNames.columnFields
+					);
+
+					// Extract measures from DOM
+					const measureChips = pivotGrid.element.find(
+						".k-settings-measures .k-chip-text"
+					);
+					measureChips.each(function () {
+						const measureName = $(this).text().trim();
+						if (measureName) {
+							fieldNames.measureFields.push(measureName);
+						}
+					});
+
+					console.log("🔧 Dynamic fields found:", fieldNames);
+					return fieldNames;
+				} catch (e) {
+					console.error("❌ Error getting dynamic fields:", e);
+					return fieldNames;
+				}
+			};
+
+			// New function to get data directly from PivotGrid dataSource
+			const getChartDataFromDataSource = () => {
+				const pivotGrid = getCurrentPivotGrid();
+				if (!pivotGrid) {
+					console.error("❌ PivotGrid is not initialized");
+					return null;
+				}
+
+				console.log("🔍 Getting data from PivotGrid dataSource...");
+				
+				const dataSource = pivotGrid.dataSource;
+				const rawData = getDataFromPivotGrid();
+				const chartData = {
+					series: [],
+					categories: [],
+					hasData: false
+				};
+
+				try {
+					// 1. Get current configuration
+					const rows = dataSource.rows();
+					const columns = dataSource.columns();
+					const measures = dataSource.measures();
+
+					console.log("📊 Current configuration:");
+					console.log("   - DATA:", dataSource);
+					console.log("   - Rows:", rows);
+					console.log("   - Columns:", columns);
+					console.log("   - Measures:", measures);
+
+					// 2. Generate categories (X axis) based on columns
+					chartData.categories = generateCategoriesFromColumns(columns, measures, rawData);
+					console.log("📊 Generated categories:", chartData.categories);
+
+					// 3. Generate series based on rows using rawData directly
+					chartData.series = generateSeriesFromRows(rows, columns, measures, rawData);
+					console.log("📊 Generated series:", chartData.series.length);
+
+					// 4. Check if there is data
+					chartData.hasData = chartData.series.length > 0 && chartData.categories.length > 0;
+
+					console.log("✅ Data obtained from dataSource:", chartData);
+					return chartData;
+
+				} catch (error) {
+					console.error("❌ Error getting data from dataSource:", error);
+					return null;
+				}
+			};
+
+			// Function to generate categories from columns
+			const generateCategoriesFromColumns = (columns, measures, rawData) => {
+				const categories = [];
+				const fieldNames = getDynamicFieldNames();
+
+				if (!fieldNames || !fieldNames.columnFields) {
+					console.warn("⚠️ Could not get column fields");
+					return categories;
+				}
+
+				console.log("🔍 === GENERATING CATEGORIES ===");
+				console.log("📊 Raw data for categories:", rawData);
+				console.log("📊 Column fields:", fieldNames.columnFields);
+
+				// Get unique values for each column field
+				const columnValues = {};
+				fieldNames.columnFields.forEach((fieldName) => {
+					columnValues[fieldName] = [];
+					rawData.forEach((item) => {
+						if (
+							item[fieldName] &&
+							!columnValues[fieldName].includes(item[fieldName])
+						) {
+							columnValues[fieldName].push(item[fieldName]);
+						}
+					});
+				});
+
+				console.log("📊 Unique values per field:", columnValues);
+
+				// Generate all possible combinations of column values
+				const combinations = generateColumnCombinations(columnValues, fieldNames.columnFields);
+				
+				// Combine each combination with each measure
+				combinations.forEach((combination) => {
+					measures.forEach((measure) => {
+						const measureName = measure.name || measure.field || measure;
+						const categoryParts = [];
+						
+						// Add each formatted column value
+						fieldNames.columnFields.forEach((fieldName, index) => {
+							const value = combination[index];
+							const formattedValue = formatColumnValue(value);
+							categoryParts.push(formattedValue);
+						});
+						
+						// Add measure at the end
+						categoryParts.push(measureName);
+						
+						const category = categoryParts.join(" | ");
+						categories.push(category);
+					});
+				});
+
+				return categories;
+			};
+			
+			// Helper function to generate all combinations of column values
+			const generateColumnCombinations = (columnValues, columnFields) => {
+				const combinations = [];
+				
+				// Recursive function to generate combinations
+				const generateCombination = (currentCombination, fieldIndex) => {
+					if (fieldIndex === columnFields.length) {
+						combinations.push([...currentCombination]);
+						return;
+					}
+					
+					const fieldName = columnFields[fieldIndex];
+					const values = columnValues[fieldName];
+					
+					values.forEach((value) => {
+						currentCombination[fieldIndex] = value;
+						generateCombination(currentCombination, fieldIndex + 1);
+					});
+				};
+				
+				generateCombination([], 0);
+				return combinations;
+			};
+
+			// Function to generate series from rows
+			const generateSeriesFromRows = (rows, columns, measures, rawData) => {
+				const series = [];
+				const fieldNames = getDynamicFieldNames();
+
+				if (!fieldNames || !fieldNames.rowFields) {
+					console.warn("⚠️ Could not get row fields");
+					return series;
+				}
+
+				console.log("🔍 === GENERATING SERIES ===");
+				console.log("📊 Raw data for series:", rawData);
+				console.log("📊 Row fields:", fieldNames.rowFields);
+
+				// Get unique values for each row field
+				const rowValues = {};
+				fieldNames.rowFields.forEach((fieldName) => {
+					rowValues[fieldName] = [];
+					rawData.forEach((item) => {
+						if (
+							item[fieldName] &&
+							!rowValues[fieldName].includes(item[fieldName])
+						) {
+							rowValues[fieldName].push(item[fieldName]);
+						}
+					});
+				});
+
+				console.log("📊 Unique values per row field:", rowValues);
+
+				// Generate all possible combinations of row values
+				const combinations = generateRowCombinations(rowValues, fieldNames.rowFields);
+				
+				// Create a series for each combination
+				combinations.forEach((combination) => {
+					const seriesName = combination.join(" | ");
+					const seriesData = generateSeriesData(combination, columns, measures, rawData);
+					if (seriesData.length > 0) {
+						series.push({
+							name: seriesName,
+							data: seriesData,
+							type: "line"
+						});
+					}
+				});
+
+				return series;
+			};
+			
+			// Helper function to generate all combinations of row values
+			const generateRowCombinations = (rowValues, rowFields) => {
+				const combinations = [];
+				
+				// Recursive function to generate combinations
+				const generateCombination = (currentCombination, fieldIndex) => {
+					if (fieldIndex === rowFields.length) {
+						combinations.push([...currentCombination]);
+						return;
+					}
+					
+					const fieldName = rowFields[fieldIndex];
+					const values = rowValues[fieldName];
+					
+					values.forEach((value) => {
+						currentCombination[fieldIndex] = value;
+						generateCombination(currentCombination, fieldIndex + 1);
+					});
+				};
+				
+				generateCombination([], 0);
+				return combinations;
+			};
+
+			// Function to generate series data
+			const generateSeriesData = (rowValue, columns, measures, rawData) => {
+				const seriesData = [];
+				const categories = generateCategoriesFromColumns(columns, measures, rawData);
+				const fieldNames = getDynamicFieldNames();
+
+				categories.forEach((category, index) => {
+					const value = calculateValueForCategory(rowValue, category, fieldNames, rawData);
+					seriesData.push({
+						category: category,
+						value: value
+					});
+				});
+
+				return seriesData;
+			};
+
+			// Function to calculate value for a specific category
+			const calculateValueForCategory = (
+				rowValue,
+				category,
+				fieldNames,
+				rawData
+			) => {
+				let totalValue = 0;
+
+				// Parse category to get column values and measure
+				const parts = category.split(" | ");
+				const measureName = parts[parts.length - 1];
+
+				console.log("🔍 === CALCULATING VALUE ===");
+				console.log("📊 Row:", rowValue);
+				console.log("📊 Category:", category);
+				console.log("📊 Measure:", measureName);
+				console.log("📊 Raw data length:", rawData.length);
+				console.log("📊 First few raw data items:", rawData.slice(0, 3));
+
+				// Create object with expected column values
+				const expectedColumnValues = {};
+				fieldNames.columnFields.forEach((fieldName, index) => {
+					expectedColumnValues[fieldName] = parts[index];
+				});
+
+				console.log("📊 Expected column values:", expectedColumnValues);
+				console.log("📊 Field names:", fieldNames);
+
+				// Search in original data and SUM all that match
+				rawData.forEach((item, index) => {
+					let rowMatch = true;
+					let columnMatch = true;
+
+					console.log(`🔍 Checking item ${index}:`, item);
+
+					// Check row match
+					if (Array.isArray(rowValue)) {
+						// Multiple row fields
+						fieldNames.rowFields.forEach((fieldName, fieldIndex) => {
+							console.log(`🔍 Checking row field ${fieldName}: expected=${rowValue[fieldIndex]}, actual=${item[fieldName]}`);
+							if (item[fieldName] !== rowValue[fieldIndex]) {
+								rowMatch = false;
+								console.log(`❌ Row field ${fieldName} doesn't match`);
+							}
+						});
+					} else {
+						// Single row field
+						if (fieldNames.rowFields.length > 0) {
+							const fieldName = fieldNames.rowFields[0];
+							console.log(`🔍 Checking single row field ${fieldName}: expected=${rowValue}, actual=${item[fieldName]}`);
+							if (item[fieldName] !== rowValue) {
+								rowMatch = false;
+								console.log(`❌ Single row field ${fieldName} doesn't match`);
+							}
+						}
+					}
+
+					// Check column match (dynamic for any quantity)
+					fieldNames.columnFields.forEach((fieldName) => {
+						const expectedValue = expectedColumnValues[fieldName];
+						const actualValue = item[fieldName];
+
+						console.log(`🔍 Checking column field ${fieldName}: expected=${expectedValue}, actual=${actualValue}`);
+
+						// Detect if it's a date field and format it
+						if (isDateField(actualValue)) {
+							const formattedDate = formatDateToMMDDYYYY(actualValue);
+							console.log(`🔍 Date field ${fieldName}: formatted=${formattedDate}, expected=${expectedValue}`);
+							if (formattedDate !== expectedValue) {
+								columnMatch = false;
+								console.log(`❌ Date field ${fieldName} doesn't match`);
+							}
+						} else {
+							if (actualValue !== expectedValue) {
+								columnMatch = false;
+								console.log(`❌ Column field ${fieldName} doesn't match`);
+							}
+						}
+					});
+
+					console.log(`🔍 Item ${index} - Row match: ${rowMatch}, Column match: ${columnMatch}`);
+
+					// If row and column match, SUM the measure value
+					if (rowMatch && columnMatch) {
+						const itemValue = parseFloat(item[measureName]) || 0;
+						totalValue += itemValue;
+						console.log(`✅ Match found! Item value: ${itemValue}, measure field: ${measureName}, total so far: ${totalValue}`);
+					} else {
+						console.log(`❌ No match for item ${index}`);
+					}
+				});
+
+				console.log(`📊 Final value: ${totalValue}\n`);
+				return totalValue;
+			};
+			
+			// Helper function to detect if a value is a date
+			const isDateField = (value) => {
+				if (!value) return false;
+				// Check if it's an ISO date or similar
+				return (
+					typeof value === "string" &&
+					(value.includes("T") || value.includes("-") || value.includes("/")) &&
+					!isNaN(new Date(value).getTime())
+				);
+			};
+
+			// Function to format date to MM/DD/YYYY format
+			const formatDateToMMDDYYYY = (dateValue) => {
+				try {
+					const date = new Date(dateValue);
+					const month = String(date.getMonth() + 1).padStart(2, '0');
+					const day = String(date.getDate()).padStart(2, '0');
+					const year = date.getFullYear();
+					return `${month}/${day}/${year}`;
+				} catch (e) {
+					console.warn("⚠️ Error formatting date:", dateValue, e);
+					return dateValue;
+				}
+			};
+
+			// Function to format column values
+			const formatColumnValue = (value) => {
+				if (value && value.includes("-") && value.includes("T")) {
+					return formatDateToMMDDYYYY(value);
+				}
+				return value;
+			};
+		</script>
+	</body>
+</html> 

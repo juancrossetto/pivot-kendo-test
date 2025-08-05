@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<!-- <base href="https://demos.telerik.com/kendo-ui/pivotgrid/index" /> -->
+		<style>
+			html {
+				font-size: 14px;
+				font-family: Arial, Helvetica, sans-serif;
+			}
+		</style>
+		<title></title>
+		<link
+			href="https://kendo.cdn.telerik.com/themes/11.0.2/default/default-main.css"
+			rel="stylesheet"
+		/>
+		<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+		<script src="https://kendo.cdn.telerik.com/2025.2.702/js/kendo.all.min.js"></script>
+	</head>
+	<body>
+		<hr />
+		<div id="chart"></div>
+		<div id="stockChart"></div>
+		<style>
+			.selected-cell {
+				background-color: rgba(0, 123, 255, 0.2);
+				outline: 2px solid #007bff;
+			}
+			.chart-container {
+				margin: 20px 0;
+				padding: 10px;
+				border: 1px solid #ddd;
+				border-radius: 5px;
+			}
+			.k-pivotgrid-total {
+				background-color: #ffe0ef !important;
+			}
+
+			/* Estilo para celdas de totales */
+			.k-alt {
+				background-color: #ffb347 !important;
+				color: black !important;
+				font-weight: bold !important;
+			}
+
+			/* Estilo para headers de totales */
+			.k-grid-header-table .k-table-tbody tr th.k-alt {
+				background-color: #ffb347 !important;
+				color: black !important;
+				font-weight: bold !important;
+			}
+
+			/* Estilos para el PivotConfigurator */
+			#pivotconfigurator {
+				border: 1px solid #ddd;
+				border-radius: 5px;
+				padding: 10px;
+				background-color: #f8f9fa;
+				height: 500px;
+				overflow-y: auto;
+			}
+
+			.k-pivotconfigurator {
+				font-family: Arial, sans-serif;
+			}
+
+			.k-pivotconfigurator .k-pivotconfigurator-panel {
+				border: 1px solid #ccc;
+				border-radius: 3px;
+				margin: 5px;
+			}
+
+			.k-pivotconfigurator .k-pivotconfigurator-panel-header {
+				background-color: #007bff;
+				color: white;
+				padding: 8px;
+				font-weight: bold;
+			}
+
+			/* Responsive design */
+			@media (max-width: 1200px) {
+				#pivotconfigurator {
+					flex: 0 0 300px;
+					min-width: 300px;
+				}
+			}
+
+			@media (max-width: 900px) {
+				#pivotconfigurator {
+					flex: 0 0 250px;
+					min-width: 250px;
+				}
+			}
+
+			/* Estilos para el kendoSwitch */
+			.k-switch {
+				margin: 0 10px;
+			}
+
+			.k-switch-label {
+				font-size: 12px;
+				font-weight: bold;
+			}
+
+			/* Contenedor del switch */
+			.switch-container {
+				display: inline-flex;
+				align-items: center;
+				background-color: #f8f9fa;
+				padding: 8px 12px;
+				border-radius: 5px;
+				border: 1px solid #ddd;
+			}
+		</style>
+		<div style="margin-bottom: 20px">
+			<button id="refreshPivotData">Refrescar Datos</button>
+			<div class="switch-container" style="margin-left: 20px">
+				<label
+					for="hideTotalsSwitch"
+					style="margin-right: 10px; font-weight: bold; color: #333"
+					>Ocultar Totales:</label
+				>
+				<input id="hideTotalsSwitch" />
+			</div>
+		</div>
+		<div style="margin-bottom: 10px">
+			<h3 style="margin: 0; color: #333">📊 Configurador de PivotGrid</h3>
+			<p style="margin: 5px 0; color: #666; font-size: 14px">
+				Arrastra y suelta campos entre las áreas para cambiar la configuración
+			</p>
+		</div>
+		<div style="display: flex; gap: 20px; margin-bottom: 20px">
+			<div
+				id="pivotconfigurator"
+				style="flex: 0 0 350px; min-width: 350px"
+			></div>
+			<div id="pivotgrid" style="flex: 1"></div>
+		</div>
+		<button id="showChart">Mostrar Chart desde Pivot HTML</button>
+		<button id="showStockChart">Mostrar Stock Chart</button>
+		<script>
+			var processedData = {};
+			var hideTotalsSwitchState = false; // Global variable to track switch state (default: show totals)
+
+			// Robust function to handle PivotGrid totals based on configuration
+			const handlePivotGridTotalsRobust = (pivotGrid, shouldHide) => {
+				if (!pivotGrid || !pivotGrid.element) return;
+				
+				console.log(`🔍 Robust handling of PivotGrid totals (${shouldHide ? 'hide' : 'show'})...`);
+				
+				// Get PivotGrid configuration
+				const dataSource = pivotGrid.dataSource;
+				const measures = dataSource.measures();
+				const columns = dataSource.columns();
+				const rows = dataSource.rows();
+				
+				console.log(`📊 PivotGrid config - Measures: ${measures.length}, Columns: ${columns.length}, Rows: ${rows.length}`);
+				
+				// Method 1: Handle elements with k-alt and k-pivotgrid-total classes
+				const totalElements = pivotGrid.element.find('th.k-alt, th.k-pivotgrid-total, td.k-alt, td.k-pivotgrid-total');
+				console.log(`🔍 Found ${totalElements.length} total elements with k-alt/k-pivotgrid-total classes`);
+				
+				totalElements.each(function() {
+					const element = $(this);
+					const text = element.text().trim();
+					const tagName = element.prop('tagName').toLowerCase();
+					
+					if (shouldHide) {
+						element.hide();
+						console.log(`🔍 Hidden ${tagName} with text: "${text}"`);
+					} else {
+						element.show();
+						console.log(`🔍 Shown ${tagName} with text: "${text}"`);
+					}
+				});
+				
+				// Method 2: Handle footer
+				const footer = pivotGrid.element.find('.k-grid-footer');
+				if (footer.length > 0) {
+					if (shouldHide) {
+						footer.hide();
+						console.log(`🔍 Hidden footer`);
+					} else {
+						footer.show();
+						console.log(`🔍 Shown footer`);
+					}
+				}
+				
+				// Method 3: Handle last column (Grand Total column)
+				const tables = pivotGrid.element.find('table');
+				tables.each(function(tableIndex) {
+					const table = $(this);
+					const colgroup = table.find('colgroup');
+					
+					if (colgroup.length > 0) {
+						const cols = colgroup.find('col');
+						const lastColIndex = cols.length - 1;
+						
+						if (lastColIndex >= 0) {
+							const lastCol = cols.eq(lastColIndex);
+							
+							if (shouldHide) {
+								lastCol.css({width: 0});
+								console.log(`🔍 Hidden last col at index ${lastColIndex} in table ${tableIndex + 1}`);
+							} else {
+								lastCol.css({width: ''});
+								console.log(`🔍 Shown last col at index ${lastColIndex} in table ${tableIndex + 1}`);
+							}
+						}
+						
+						// Handle last cells in each row
+						table.find('tr').each(function(rowIndex) {
+							const row = $(this);
+							const cells = row.find('td, th');
+							const lastCellIndex = cells.length - 1;
+							
+							if (lastCellIndex >= 0) {
+								const lastCell = cells.eq(lastCellIndex);
+								
+								if (shouldHide) {
+									lastCell.hide();
+									console.log(`🔍 Hidden last cell at index ${lastCellIndex} in row ${rowIndex + 1} of table ${tableIndex + 1}`);
+								} else {
+									lastCell.show();
+									console.log(`🔍 Shown last cell at index ${lastCellIndex} in row ${rowIndex + 1} of table ${tableIndex + 1}`);
+								}
+							}
+						});
+					}
+				});
+				
+				// Method 4: Handle row totals (last row if exists)
+				const lastRow = pivotGrid.element.find('tr:last-child');
+				if (lastRow.length > 0) {
+					const lastRowCells = lastRow.find('td, th');
+					
+					// Check if this looks like a totals row (all cells have k-alt class or contain totals)
+					let isTotalsRow = false;
+					lastRowCells.each(function() {
+						const cell = $(this);
+						const text = cell.text().trim().toLowerCase();
+						if (cell.hasClass('k-alt') || cell.hasClass('k-pivotgrid-total') || 
+							text.includes('total') || text.includes('sum') || text.includes('grand')) {
+							isTotalsRow = true;
+							return false; // break the loop
+						}
+					});
+					
+					if (isTotalsRow) {
+						if (shouldHide) {
+							lastRow.hide();
+							console.log(`🔍 Hidden totals row`);
+						} else {
+							lastRow.show();
+							console.log(`🔍 Shown totals row`);
+						}
+					}
+				}
+				
+				console.log(`✅ Robust totals handling completed (${shouldHide ? 'hidden' : 'shown'})`);
+			};
+
+			// Function to handle totals visibility
+			const handleTotalsVisibility = (pivotGrid) => {
+				if (!pivotGrid) return;
+				
+				console.log("🔍 Global switch state:", hideTotalsSwitchState);
+				
+				if (hideTotalsSwitchState) {
+					console.log("🔍 Hiding totals", pivotGrid);
+					
+					// Use robust approach
+					handlePivotGridTotalsRobust(pivotGrid, true);
+					
+					console.log("✅ Totales ocultos desde handleTotalsVisibility");
+				} else {
+					console.log("🔍 Showing totals");
+					
+					// Method 2: Show all td elements with k-alt class (total cells)
+					table.find('td.k-alt, td.k-pivotgrid-total').each(function() {
+						const cell = $(this);
+						const text = cell.text().trim();
+						console.log(`🔍 Showing total cell: "${text}"`);
+						cell.show();
+					});
+					
+					// Method 3: Show footer if exists
+					const footer = table.find('.k-grid-footer');
+					if (footer.length > 0) {
+						footer.show();
+						console.log(`🔍 Shown footer`);
+					}
+				};
+				
+				console.log("✅ Total columns shown");
+			};
+
+			// Función para obtener el PivotGrid actual
+			const getCurrentPivotGrid = () => {
+				return $("#pivotgrid").data("kendoPivotGrid");
+			};
+
+			// Function to get data from PivotGrid dataSource
+			const getDataFromPivotGrid = () => {
+				const pivotGrid = getCurrentPivotGrid();
+				if (!pivotGrid || !pivotGrid.dataSource) {
+					console.warn("⚠️ PivotGrid or dataSource not found");
+					return [];
+				}
+
+				console.log("🔍 === DEBUGGING DATA SOURCE ===");
+				console.log("📊 PivotGrid:", pivotGrid);
+				console.log("📊 DataSource:", pivotGrid.dataSource);
+				console.log("📊 DataSource._rawData:", pivotGrid.dataSource._rawData);
+				console.log("📊 DataSource.data():", pivotGrid.dataSource.data());
+				console.log("📊 DataSource.view():", pivotGrid.dataSource.view());
+
+				// Get raw data from pivotGrid.dataSource._rawData
+				const rawData = pivotGrid.dataSource._rawData || [];
+				console.log("📊 Raw data from PivotGrid:", rawData.length, "records");
+				console.log("📊 First record sample:", rawData[0]);
+				console.log("📊 All raw data:", rawData);
+				console.log("🔍 === END DEBUGGING DATA SOURCE ===");
+
+				return rawData;
+			};
+
+			// Eliminar la declaración fija de initialData y agregar la función para cargar sampleData.json
+			let initialData = [];
+
+			async function loadInitialData() {
+				try {
+					const response = await fetch("sampleData.json");
+					if (!response.ok)
+						throw new Error("No se pudo cargar sampleData.json");
+					initialData = await response.json();
+					// initialData = initialData.slice(0, 800);
+					console.log("initialData", initialData);
+					console.log("Datos cargados:", initialData.length, "registros");
+				} catch (e) {
+					console.error("Error cargando sampleData.json", e);
+					initialData = [];
+				}
+			}
+
+			// Modificar la inicialización para que espere a que los datos estén cargados antes de llamar a initializePivotGrid
+			$(document).ready(() => {
+				window.pivotGridInitialized = false;
+				window.expansionCompleted = false;
+				loadInitialData().then(() => {
+					initializePivotGrid();
+				});
+			});
+
+			const initializePivotGrid = () => {
+				// const initialData = [
+				// 	{
+				// 		"Fund Name": "Ardmore Road - MAP PPCEHMS_13",
+				// 		FundID: 1234,
+				// 		Manager: "Ardmore Road - MAP PPCEHMS_13",
+				// 		Security: "AMC NETWORKS INC",
+				// 		"Asset Class": "Equity",
+				// 		"Security Type": "Common Share",
+				// 		"GICS Sector": "Communication Services",
+				// 		Region_: "Unassigned",
+				// 		"Country": "USA",
+				// 		"LH Exposure": 180.2291,
+				// 		"Market Value": 180.2291,
+				// 		"Net Notional": 180.2291,
+				// 		"Attribution Date": "07/29/2025",
+				// 		"Fund ID": 1234,
+				// 		"Net LH Exposure": 180.2291,
+				// 		"Gross LH Exposure": 180.2291,
+				// 		Contribution: -1.74955166442271e-8,
+				// 		PnL: -1.1573,
+				// 		"Net Market Value": 0.000002724618697679142,
+				// 		GMV: 0.000002724618697679142,
+				// 	}
+				// ];
+
+				const config = {
+					modelFields: {
+						"Fund Name": {
+							type: "string",
+						},
+						FundID: {
+							type: "number",
+						},
+						Manager: {
+							type: "string",
+						},
+						Security: {
+							type: "string",
+						},
+						"Asset Class": {
+							type: "string",
+						},
+						"Security Type": {
+							type: "string",
+						},
+						"GICS Sector": {
+							type: "string",
+						},
+						Region_: {
+							type: "string",
+						},
+						Country: {
+							type: "string",
+						},
+						"LH Exposure": {
+							type: "number",
+						},
+						"Market Value": {
+							type: "number",
+						},
+						"Net Notional": {
+							type: "number",
+						},
+						"Attribution Date": {
+							type: "string",
+						},
+						"Fund ID": {
+							type: "number",
+						},
+						"Net LH Exposure": {
+							type: "number",
+						},
+						"Gross LH Exposure": {
+							type: "number",
+						},
+						Contribution: {
+							type: "number",
+						},
+						PnL: {
+							type: "number",
+						},
+						"Net Market Value": {
+							type: "number",
+						},
+						GMV: {
+							type: "number",
+						},
+					},
+					dimensions: {
+						"Fund Name": {
+							uniqueName: "Fund Name",
+							caption: "Fund Name",
+						},
+						FundID: {
+							uniqueName: "FundID",
+							caption: "FundID",
+						},
+						Manager: {
+							uniqueName: "Manager",
+							caption: "Manager",
+						},
+						Security: {
+							uniqueName: "Security",
+							caption: "Security",
+						},
+						"Asset Class": {
+							uniqueName: "Asset Class",
+							caption: "Asset Class",
+						},
+						"Security Type": {
+							uniqueName: "Security Type",
+							caption: "Security Type",
+						},
+						"GICS Sector": {
+							uniqueName: "GICS Sector",
+							caption: "GICS Sector",
+						},
+						Region_: {
+							uniqueName: "Region_",
+							caption: "Region_",
+						},
+						Country: {
+							uniqueName: "Country",
+							caption: "Country",
+						},
+						"Attribution Date": {
+							uniqueName: "Attribution Date",
+							caption: "Attribution Date",
+						},
+						"Fund ID": {
+							uniqueName: "Fund ID",
+							caption: "Fund ID",
+						},
+					},
+					measures: {
+						"LH Exposure": {
+							field: "LH Exposure",
+							aggregate: "sum",
+							format: "{0:n2}",
+						},
+						"Market Value": {
+							field: "Market Value",
+							aggregate: "sum",
+							format: "{0:n2}",
+						},
+						"Net Notional": {
+							field: "Net Notional",
+							aggregate: "sum",
+							format: "{0:n2}",
+						},
+						"Net LH Exposure": {
+							field: "Net LH Exposure",
+							aggregate: "sum",
+							format: "{0:n2}",
+						},
+						"Gross LH Exposure": {
+							field: "Gross LH Exposure",
+							aggregate: "sum",
+							format: "{0:n2}",
+						},
+						Contribution: {
+							field: "Contribution",
+							aggregate: "sum",
+							format: "{0:p2}",
+						},
+						PnL: {
+							field: "PnL",
+							aggregate: "sum",
+							format: "{0:n2}",
+						},
+						"Net Market Value": {
+							field: "Net Market Value",
+							aggregate: "sum",
+							format: "{0:p2}",
+						},
+						GMV: {
+							field: "GMV",
+							aggregate: "sum",
+							format: "{0:p2}",
+						},
+					},
+					rows: [
+						{
+							name: "Fund Name",
+							expand: true,
+							totals: { enabled: false },
+							total: false,
+						},
+					],
+					columns: [
+						{
+							name: "Attribution Date",
+							expand: true,
+							totals: { enabled: false },
+							total: false,
+						},
+						{
+							name: "Region_",
+							expand: true,
+							totals: { enabled: false },
+							total: false,
+						},
+					],
+					// measureKeys: ["PnL", "Net Market Value", "GMV"],
+					measureKeys: ["PnL", "GMV"],
+					fieldTypesAux: {
+						"Fund Name": {
+							type: "string",
+							fieldName: "Fund Name",
+							format: "string",
+							initial: true,
+						},
+						FundID: {
+							type: "number",
+							fieldName: "FundID",
+							format: "string",
+							initial: false,
+						},
+						Manager: {
+							type: "string",
+							fieldName: "Manager",
+							format: "string",
+							initial: false,
+						},
+						Security: {
+							type: "string",
+							fieldName: "Security",
+							format: "string",
+							initial: false,
+						},
+						"Asset Class": {
+							type: "string",
+							fieldName: "Asset Class",
+							format: "string",
+							initial: false,
+						},
+						"Security Type": {
+							type: "string",
+							fieldName: "Security Type",
+							format: "string",
+							initial: false,
+						},
+						"GICS Sector": {
+							type: "string",
+							fieldName: "GICS Sector",
+							format: "string",
+							initial: false,
+						},
+						Region_: {
+							type: "string",
+							fieldName: "Region_",
+							format: "string",
+							initial: false,
+						},
+						Country: {
+							type: "string",
+							fieldName: "Country",
+							format: "string",
+							initial: false,
+						},
+						"LH Exposure": {
+							type: "number",
+							fieldName: "LH Exposure",
+							format: "n2",
+							initial: false,
+						},
+						"Market Value": {
+							type: "number",
+							fieldName: "Market Value",
+							format: "n2",
+							initial: false,
+						},
+						"Net Notional": {
+							type: "number",
+							fieldName: "Net Notional",
+							format: "n2",
+							initial: false,
+						},
+						"Attribution Date": {
+							type: "date",
+							fieldName: "Attribution Date",
+							format: "string",
+							initial: true,
+						},
+						"Fund ID": {
+							type: "number",
+							fieldName: "Fund ID",
+							format: "string",
+							initial: false,
+						},
+						"Net LH Exposure": {
+							type: "number",
+							fieldName: "Net LH Exposure",
+							format: "n2",
+							initial: false,
+						},
+						"Gross LH Exposure": {
+							type: "number",
+							fieldName: "Gross LH Exposure",
+							format: "n2",
+							initial: false,
+						},
+						Contribution: {
+							type: "number",
+							fieldName: "Contribution",
+							format: "p2",
+							initial: false,
+						},
+						PnL: {
+							type: "number",
+							fieldName: "PnL",
+							format: "n2",
+							initial: true,
+						},
+						"Net Market Value": {
+							type: "number",
+							fieldName: "Net Market Value",
+							format: "p2",
+							initial: true,
+						},
+						GMV: {
+							type: "number",
+							fieldName: "GMV",
+							format: "p2",
+							initial: true,
+						},
+					},
+				};
+
+				// Initialize PivotConfigurator
+				$("#pivotconfigurator").kendoPivotConfigurator({
+					dataSource: {
+						data: initialData,
+						schema: {
+							model: { fields: config.modelFields },
+							cube: {
+								dimensions: config.dimensions,
+								measures: config.measures,
+							},
+						},
+						columns: [
+							...config.columns,
+							// { name: "Security Type", expand: true },
+						],
+						rows: [
+							...config.rows,
+							// { name: "Security Type", expand: true },
+						],
+						measures: config.measureKeys,
+					},
+					height: 480,
+					layout: "grid",
+					filterable: true,
+					sortable: true,
+					reorderable: true,
+					change: function (e) {
+						console.log("CHANGESSSS - PivotConfigurator changed!");
+						console.log("Current configuration:");
+						console.log("  - Rows:", this.dataSource.rows());
+						console.log("  - Columns:", this.dataSource.columns());
+						console.log("  - Measures:", this.dataSource.measures());
+
+						// Update the PivotGrid with the new configuration
+						const pivotGrid = $("#pivotgrid").data("kendoPivotGrid");
+						if (pivotGrid) {
+							// Preserve current totals visibility settings
+							const currentShowRowTotals = pivotGrid.options.showRowTotals;
+							const currentShowColumnTotals =
+								pivotGrid.options.showColumnTotals;
+
+							pivotGrid.setDataSource(this.dataSource);
+
+							// Restore totals visibility settings
+							pivotGrid.options.showRowTotals = currentShowRowTotals;
+							pivotGrid.options.showColumnTotals = currentShowColumnTotals;
+
+							// Apply totals visibility after configuration change
+							setTimeout(() => {
+								const pivotGrid = $("#pivotgrid").data("kendoPivotGrid");
+								if (pivotGrid) {
+									handleTotalsVisibility(pivotGrid);
+								}
+							}, 200);
+						}
+					},
+				});
+				console.log("config:", config);
+				// Initialize PivotGrid
+				$("#pivotgrid")
+					.kendoPivotGrid({
+						dataSource: {
+							data: initialData,
+							schema: {
+								model: { fields: config.modelFields },
+								cube: {
+									dimensions: config.dimensions,
+									measures: config.measures,
+								},
+							},
+							columns: [
+								...config.columns,
+								// { name: "Security Type", expand: true },
+							],
+							rows: [
+								// ...config.rows,
+								// { name: "Security Type", expand: true },
+								{ name: "Country", expand: true },
+							],
+							measures: config.measureKeys,
+						},
+						dataCellTemplate: customDataCellTemplate(config.fieldTypesAux),
+						expand: true,
+						height: 500,
+						showRowTotals: true,
+						showColumnTotals: true,
+						dataBound: function () {
+							console.log("enters through databound");
+							// Apply totals visibility based on switch state
+							handleTotalsVisibility(this);
+						},
+						expand: function (e) {
+							console.log("📈 PivotGrid expanded");
+							// Apply totals visibility after expansion
+							setTimeout(() => handleTotalsVisibility(this), 100);
+						},
+						collapse: function (e) {
+							console.log("📉 PivotGrid collapsed");
+							// Apply totals visibility after collapse
+							setTimeout(() => handleTotalsVisibility(this), 100);
+						},
+					})
+					.data("kendoPivotGrid");
+
+				// Initialize kendoSwitch for hiding totals
+				$("#hideTotalsSwitch").kendoSwitch({
+					checked: false, // Default to unchecked (show totals)
+					messages: {
+						checked: "SÍ",
+						unchecked: "NO",
+					},
+					change: function (e) {
+						// Update global state
+						hideTotalsSwitchState = e.checked;
+						console.log(`✅ Switch cambiado a: ${e.checked ? "ocultar" : "mostrar"} totales`);
+						
+						const pivotGrid = $("#pivotgrid").data("kendoPivotGrid");
+						if (pivotGrid) {
+							// Apply totals visibility immediately
+							handleTotalsVisibility(pivotGrid);
+						}
+					},
+				});
+			};
+
+			// Event to refresh PivotGrid data
+			document.getElementById("refreshPivotData").onclick = () => {
+				const pivotGrid = getCurrentPivotGrid();
+				if (pivotGrid) {
+					pivotGrid.dataSource.read();
+					console.log("✅ PivotGrid data refreshed");
+				}
+			};
+
+			// Event to show normal Chart - OPTIMIZED
+			document.getElementById("showChart").onclick = () => {
+				console.log("🚀 Starting data extraction process from dataSource...");
+
+				// Show loading indicator
+				$("#chart").html(
+					'<div style="text-align: center; padding: 50px; color: #666; font-size: 16px;">⏳ <strong>Processing data...</strong><br><br>Please wait while we generate the chart from PivotGrid data.<br><br><small>💡 This may take a moment for large datasets</small></div>'
+				);
+
+				// Add timeout to prevent hanging
+				const timeoutId = setTimeout(() => {
+					$("#chart").html(
+						'<div style="text-align: center; padding: 50px; color: #666; font-size: 16px;">⚠️ <strong>Processing timeout</strong><br><br>The dataset is too large to process efficiently.<br><br><small>💡 Try reducing the data size or using fewer dimensions</small></div>'
+					);
+				}, 30000); // 30 seconds timeout
+
+				// Use setTimeout to allow UI to update
+				setTimeout(() => {
+					try {
+						// Get data directly from dataSource
+						const chartData = getChartDataFromDataSource();
+
+						clearTimeout(timeoutId);
+
+						if (!chartData || !chartData.hasData) {
+							$("#chart").html(
+								'<div style="text-align: center; padding: 50px; color: #666; font-size: 16px;">📊 <strong>No data available</strong><br><br>No specific data found in PivotGrid.<br><br><small>💡 Tip: Expand dimensions in PivotGrid to see detailed data</small></div>'
+							);
+							return;
+						}
+
+						console.log("✅ Data obtained from dataSource:", chartData);
+
+						// Debug: Show sample data for verification
+						if (chartData.series.length > 0) {
+							console.log("🔍 Sample series data:", chartData.series[0]);
+						}
+						if (chartData.categories.length > 0) {
+							console.log(
+								"🔍 Sample categories:",
+								chartData.categories.slice(0, 5)
+							);
+						}
+
+						// Create chart with dataSource data
+						$("#chart").kendoChart({
+							title: {
+								text: "Data from PivotGrid DataSource (Optimized)",
+							},
+							series: chartData.series,
+							categoryAxis: {
+								categories: chartData.categories,
+								type: "category",
+								labels: {
+									rotation: "auto",
+								},
+								position: "bottom",
+								crosshair: {
+									visible: true,
+								},
+							},
+							valueAxis: {
+								labels: {
+									format: "N0",
+								},
+								axisCrossingValue: 0,
+								position: "left",
+							},
+							tooltip: {
+								visible: true,
+								format: "{0}",
+							},
+							legend: {
+								visible: true,
+							},
+						});
+					} catch (error) {
+						clearTimeout(timeoutId);
+						console.error("❌ Error generating chart:", error);
+						$("#chart").html(
+							'<div style="text-align: center; padding: 50px; color: #666; font-size: 16px;">❌ <strong>Error generating chart</strong><br><br>An error occurred while processing the data.<br><br><small>💡 Try reducing the dataset size or check the console for details</small></div>'
+						);
+					}
+				}, 100); // Small delay to allow UI update
+			};
+
+			// Event to show Stock Chart - OPTIMIZED
+			document.getElementById("showStockChart").onclick = () => {
+				console.log(
+					"🚀 Starting data extraction process from dataSource for Stock Chart..."
+				);
+
+				// Show loading indicator
+				$("#stockChart").html(
+					'<div style="text-align: center; padding: 50px; color: #666; font-size: 16px;">⏳ <strong>Processing data...</strong><br><br>Please wait while we generate the stock chart from PivotGrid data.<br><br><small>💡 This may take a moment for large datasets</small></div>'
+				);
+
+				// Add timeout to prevent hanging
+				const timeoutId = setTimeout(() => {
+					$("#stockChart").html(
+						'<div style="text-align: center; padding: 50px; color: #666; font-size: 16px;">⚠️ <strong>Processing timeout</strong><br><br>The dataset is too large to process efficiently.<br><br><small>💡 Try reducing the data size or using fewer dimensions</small></div>'
+					);
+				}, 30000); // 30 seconds timeout
+
+				// Use setTimeout to allow UI to update
+				setTimeout(() => {
+					try {
+						// Get data directly from dataSource
+						const chartData = getChartDataFromDataSource();
+
+						clearTimeout(timeoutId);
+
+						if (!chartData || !chartData.hasData) {
+							$("#stockChart").html(
+								'<div style="text-align: center; padding: 50px; color: #666; font-size: 16px;">📈 <strong>No data available</strong><br><br>No specific data found in PivotGrid.<br><br><small>💡 Tip: Expand dimensions in PivotGrid to see detailed data</small></div>'
+							);
+							return;
+						}
+
+						console.log(
+							"✅ Data obtained from dataSource for Stock Chart:",
+							chartData
+						);
+
+						// Create stock chart with dataSource data
+						$("#stockChart").kendoStockChart({
+							title: {
+								text: "Stock Chart from PivotGrid DataSource (Optimized)",
+							},
+							series: chartData.series,
+							categoryAxis: {
+								categories: chartData.categories,
+								type: "category",
+								labels: {
+									rotation: "auto",
+								},
+								position: "bottom",
+								crosshair: {
+									visible: true,
+								},
+							},
+							valueAxis: {
+								labels: {
+									format: "N0",
+								},
+								axisCrossingValue: 0,
+								position: "left",
+							},
+							tooltip: {
+								visible: true,
+								format: "{0}",
+							},
+							legend: {
+								visible: true,
+							},
+						});
+					} catch (error) {
+						clearTimeout(timeoutId);
+						console.error("❌ Error generating stock chart:", error);
+						$("#stockChart").html(
+							'<div style="text-align: center; padding: 50px; color: #666; font-size: 16px;">❌ <strong>Error generating stock chart</strong><br><br>An error occurred while processing the data.<br><br><small>💡 Try reducing the dataset size or check the console for details</small></div>'
+						);
+					}
+				}, 100); // Small delay to allow UI update
+			};
+
+			customDataCellTemplate = (fieldTypes) => (e) => {
+				const rawValue = e?.dataItem?.value;
+				const value =
+					typeof rawValue === "number" ? rawValue : parseFloat(rawValue);
+				const field = e?.field || e?.column?.field;
+
+				if (isNaN(value)) {
+					return `<span style="display: inline-block; min-width: 40px;">&nbsp;</span>`;
+				}
+
+				const fieldInfo = fieldTypes?.[field];
+				const format = fieldInfo?.format;
+
+				const style = value < 0 ? "color: red;" : "";
+
+				if (e.dataItem.fmtValue.endsWith("%")) {
+					return `<span style="${style}text-align: right; display: inline-block; width: 100%;" title="${e.dataItem.fmtValue}">${e.dataItem.fmtValue}</span>`;
+				}
+
+				const formatted$ = value.toLocaleString("en-US", {
+					style: "currency",
+					currency: "USD",
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2,
+				});
+
+				/*const style = value < 0 ? 'color: red;' : '';*/
+
+				const valueInMillions = value / 1_000_000;
+				const formattedM = valueInMillions.toLocaleString("en-US", {
+					minimumFractionDigits: 2,
+					maximumFractionDigits: 2,
+				});
+
+				return `<span style="${style}text-align: right; display: inline-block; width: 100%;"  title="${formatted$}">${formattedM} M</span>`;
+			};
+
+			// IMPROVED Function to dynamically get field names
+			const getDynamicFieldNames = () => {
+				const fieldNames = {
+					rowFields: [],
+					columnFields: [],
+					measureFields: [],
+				};
+
+				// Verify that pivotGrid exists
+				const pivotGrid = getCurrentPivotGrid();
+				if (!pivotGrid || !pivotGrid.element) {
+					console.warn("⚠️ PivotGrid not found, using default fields");
+					return fieldNames;
+				}
+
+				try {
+					// Extract row fields from DOM
+					const rowFieldChips = pivotGrid.element.find(
+						".k-settings-rows .k-chip-text"
+					);
+					rowFieldChips.each(function () {
+						const fieldName = $(this).text().trim();
+						if (fieldName) {
+							fieldNames.rowFields.push(fieldName);
+						}
+					});
+
+					// Extract column fields from DOM
+					const columnFieldChips = pivotGrid.element.find(
+						".k-settings-columns .k-chip-text"
+					);
+					columnFieldChips.each(function () {
+						const fieldName = $(this).text().trim();
+						if (fieldName) {
+							fieldNames.columnFields.push(fieldName);
+						}
+					});
+
+					// Extract measures from DOM
+					const measureChips = pivotGrid.element.find(
+						".k-settings-measures .k-chip-text"
+					);
+					measureChips.each(function () {
+						const measureName = $(this).text().trim();
+						if (measureName) {
+							fieldNames.measureFields.push(measureName);
+						}
+					});
+
+					// If no fields found in DOM, try to get from dataSource
+					if (
+						fieldNames.rowFields.length === 0 &&
+						fieldNames.columnFields.length === 0
+					) {
+						console.log("🔍 No fields found in DOM, trying dataSource...");
+
+						// Try to get from dataSource configuration
+						const dataSource = pivotGrid.dataSource;
+						if (dataSource) {
+							const rows = dataSource.rows();
+							const columns = dataSource.columns();
+
+							if (rows && rows.length > 0) {
+								fieldNames.rowFields = rows.map((row) => row.name || row.field);
+							}
+
+							if (columns && columns.length > 0) {
+								fieldNames.columnFields = columns.map(
+									(col) => col.name || col.field
+								);
+							}
+						}
+					}
+
+					console.log("🔧 Row fields found:", fieldNames.rowFields);
+					console.log("🔧 Column fields found:", fieldNames.columnFields);
+					console.log("🔧 Measure fields found:", fieldNames.measureFields);
+
+					return fieldNames;
+				} catch (e) {
+					console.error("❌ Error getting dynamic fields:", e);
+					return fieldNames;
+				}
+			};
+
+			const MAX_CATEGORIES = 5000; // Aumentado significativamente para más categorías
+			const MAX_SERIES = 1000; // Aumentado significativamente para más series
+			const MAX_RAW_DATA = 100000; // Aumentado para procesar más datos
+			const MAX_UNIQUE_VALUES = 500; // Aumentado significativamente para más valores únicos por campo
+			const MAX_PROCESSING = 100000; // Aumentado para mejor precisión
+
+			// New function to get data directly from PivotGrid dataSource - OPTIMIZED
+			const getChartDataFromDataSource = () => {
+				const pivotGrid = getCurrentPivotGrid();
+				if (!pivotGrid) {
+					console.error("❌ PivotGrid is not initialized");
+					return null;
+				}
+
+				console.log("🔍 Getting data from PivotGrid dataSource...");
+
+				const dataSource = pivotGrid.dataSource;
+				const rawData = getDataFromPivotGrid();
+				const chartData = {
+					series: [],
+					categories: [],
+					hasData: false,
+				};
+
+				try {
+					// 1. Get current configuration
+					const rows = dataSource.rows();
+					const columns = dataSource.columns();
+					const measures = dataSource.measures();
+
+					console.log("📊 Current configuration:");
+					console.log("   - Raw data length:", rawData.length);
+					console.log("   - Rows:", rows);
+					console.log("   - Columns:", columns);
+					console.log("   - Measures:", measures);
+
+					// 2. Check data size and apply limits - ADJUSTED FOR BETTER ACCURACY
+
+					if (rawData.length > MAX_RAW_DATA) {
+						console.warn(
+							`⚠️ Large dataset detected (${rawData.length} records). Limiting to ${MAX_RAW_DATA} records for chart generation.`
+						);
+						// No modificar rawData, solo usar los primeros registros para análisis
+					}
+
+					// 3. Generate categories (X axis) based on columns - OPTIMIZED
+					chartData.categories = generateCategoriesFromColumnsOptimized(
+						columns,
+						measures,
+						rawData,
+						MAX_CATEGORIES
+					);
+					console.log("📊 Generated categories:", chartData.categories.length);
+
+					// 4. Generate series based on rows - OPTIMIZED
+					chartData.series = generateSeriesFromRowsOptimized(
+						rows,
+						columns,
+						measures,
+						rawData,
+						MAX_SERIES
+					);
+					console.log("📊 Generated series:", chartData.series.length);
+
+					// 5. Check if there is data
+					chartData.hasData =
+						chartData.series.length > 0 && chartData.categories.length > 0;
+
+					console.log("✅ Data obtained from dataSource:", chartData);
+					return chartData;
+				} catch (error) {
+					console.error("❌ Error getting data from dataSource:", error);
+					return null;
+				}
+			};
+
+			// OPTIMIZED Function to generate categories from columns
+			const generateCategoriesFromColumnsOptimized = (
+				columns,
+				measures,
+				rawData,
+				maxCategories
+			) => {
+				const categories = [];
+				const fieldNames = getDynamicFieldNames();
+
+				if (!fieldNames || !fieldNames.columnFields) {
+					console.warn("⚠️ Could not get column fields");
+					return categories;
+				}
+
+				console.log("🔍 === GENERATING CATEGORIES (OPTIMIZED) ===");
+				console.log("📊 Raw data length:", rawData.length);
+				console.log("📊 Column fields:", fieldNames.columnFields);
+
+				// Get unique values for each column field with limits
+				const columnValues = {};
+				fieldNames.columnFields.forEach((fieldName) => {
+					columnValues[fieldName] = [];
+					const seen = new Set();
+
+					// Procesar TODOS los registros para obtener valores únicos completos
+					for (const item of rawData) {
+						if (item[fieldName] && !seen.has(item[fieldName])) {
+							seen.add(item[fieldName]);
+							columnValues[fieldName].push(item[fieldName]);
+
+							// Solo limitar si hay demasiados valores únicos (para evitar explosión)
+							if (columnValues[fieldName].length >= MAX_UNIQUE_VALUES) {
+								console.warn(
+									`⚠️ Too many unique values for field ${fieldName}, limiting to ${MAX_UNIQUE_VALUES}`
+								);
+								break;
+							}
+						}
+					}
+				});
+
+				console.log("📊 Unique values per field (limited):", columnValues);
+
+				// Generate combinations - REMOVED LIMITS FOR COMPLETE DATA
+				const combinations = generateColumnCombinationsOptimized(
+					columnValues,
+					fieldNames.columnFields,
+					maxCategories
+				);
+
+				console.log(`📊 Generated ${combinations.length} column combinations`);
+
+				// Combine each combination with each measure
+				let categoryCount = 0;
+				for (const combination of combinations) {
+					if (categoryCount >= maxCategories) {
+						console.warn(
+							`⚠️ Reached category limit (${maxCategories}), stopping`
+						);
+						break;
+					}
+
+					for (const measure of measures) {
+						if (categoryCount >= maxCategories) break;
+
+						const measureName = measure.name || measure.field || measure;
+						const categoryParts = [];
+
+						// Add each formatted column value
+						fieldNames.columnFields.forEach((fieldName, index) => {
+							const value = combination[index];
+							const formattedValue = formatColumnValue(value);
+							categoryParts.push(formattedValue);
+						});
+
+						// Add measure at the end
+						categoryParts.push(measureName);
+
+						const category = categoryParts.join(" | ");
+						categories.push(category);
+						categoryCount++;
+					}
+				}
+
+				return categories;
+			};
+
+			// IMPROVED Helper function to generate combinations - NO PREMATURE LIMITS
+			const generateColumnCombinationsOptimized = (
+				columnValues,
+				columnFields,
+				maxCombinations
+			) => {
+				const combinations = [];
+				let count = 0;
+
+				// Recursive function to generate combinations
+				const generateCombination = (currentCombination, fieldIndex) => {
+					if (count >= maxCombinations) {
+						console.warn(`⚠️ Reached combination limit (${maxCombinations})`);
+						return;
+					}
+
+					if (fieldIndex === columnFields.length) {
+						combinations.push([...currentCombination]);
+						count++;
+						return;
+					}
+
+					const fieldName = columnFields[fieldIndex];
+					const values = columnValues[fieldName];
+
+					for (const value of values) {
+						if (count >= maxCombinations) {
+							console.warn(`⚠️ Stopping at ${count} combinations due to limit`);
+							break;
+						}
+						currentCombination[fieldIndex] = value;
+						generateCombination(currentCombination, fieldIndex + 1);
+					}
+				};
+
+				generateCombination([], 0);
+				console.log(
+					`📊 Generated ${combinations.length} combinations for ${columnFields.length} fields`
+				);
+				return combinations;
+			};
+
+			// OPTIMIZED Function to generate series from rows
+			const generateSeriesFromRowsOptimized = (
+				rows,
+				columns,
+				measures,
+				rawData,
+				maxSeries
+			) => {
+				const series = [];
+				const fieldNames = getDynamicFieldNames();
+
+				if (!fieldNames || !fieldNames.rowFields) {
+					console.warn("⚠️ Could not get row fields");
+					return series;
+				}
+
+				console.log("🔍 === GENERATING SERIES (OPTIMIZED) ===");
+				console.log("📊 Raw data length:", rawData.length);
+				console.log("📊 Row fields:", fieldNames.rowFields);
+
+				// Get unique values for each row field with limits
+				const rowValues = {};
+				fieldNames.rowFields.forEach((fieldName) => {
+					rowValues[fieldName] = [];
+					const seen = new Set();
+
+					// Procesar TODOS los registros para obtener valores únicos completos
+					for (const item of rawData) {
+						if (item[fieldName] && !seen.has(item[fieldName])) {
+							seen.add(item[fieldName]);
+							rowValues[fieldName].push(item[fieldName]);
+
+							// Solo limitar si hay demasiados valores únicos (para evitar explosión)
+							if (rowValues[fieldName].length >= MAX_UNIQUE_VALUES) {
+								console.warn(
+									`⚠️ Too many unique values for field ${fieldName}, limiting to ${MAX_UNIQUE_VALUES}`
+								);
+								break;
+							}
+						}
+					}
+				});
+
+				console.log("📊 Unique values per row field (limited):", rowValues);
+
+				// Generate combinations - REMOVED LIMITS FOR COMPLETE DATA
+				const combinations = generateRowCombinationsOptimized(
+					rowValues,
+					fieldNames.rowFields,
+					maxSeries
+				);
+
+				console.log(`📊 Generated ${combinations.length} row combinations`);
+
+				// Create a series for each combination
+				for (const combination of combinations) {
+					if (series.length >= maxSeries) {
+						console.warn(`⚠️ Reached series limit (${maxSeries}), stopping`);
+						break;
+					}
+
+					const seriesName = combination.join(" | ");
+					const seriesData = generateSeriesDataOptimized(
+						combination,
+						columns,
+						measures,
+						rawData
+					);
+
+					if (seriesData.length > 0) {
+						series.push({
+							name: seriesName,
+							data: seriesData,
+							type: "line",
+						});
+					}
+				}
+
+				return series;
+			};
+
+			// IMPROVED Helper function to generate row combinations - NO PREMATURE LIMITS
+			const generateRowCombinationsOptimized = (
+				rowValues,
+				rowFields,
+				maxCombinations
+			) => {
+				const combinations = [];
+				let count = 0;
+
+				// Recursive function to generate combinations
+				const generateCombination = (currentCombination, fieldIndex) => {
+					if (count >= maxCombinations) {
+						console.warn(
+							`⚠️ Reached row combination limit (${maxCombinations})`
+						);
+						return;
+					}
+
+					if (fieldIndex === rowFields.length) {
+						combinations.push([...currentCombination]);
+						count++;
+						return;
+					}
+
+					const fieldName = rowFields[fieldIndex];
+					const values = rowValues[fieldName];
+
+					for (const value of values) {
+						if (count >= maxCombinations) {
+							console.warn(
+								`⚠️ Stopping at ${count} row combinations due to limit`
+							);
+							break;
+						}
+						currentCombination[fieldIndex] = value;
+						generateCombination(currentCombination, fieldIndex + 1);
+					}
+				};
+
+				generateCombination([], 0);
+				console.log(
+					`📊 Generated ${combinations.length} row combinations for ${rowFields.length} fields`
+				);
+				return combinations;
+			};
+
+			// OPTIMIZED Function to generate series data
+			const generateSeriesDataOptimized = (
+				rowValue,
+				columns,
+				measures,
+				rawData
+			) => {
+				const seriesData = [];
+				const categories = generateCategoriesFromColumnsOptimized(
+					columns,
+					measures,
+					rawData,
+					50 // Limitar categorías para series también
+				);
+				const fieldNames = getDynamicFieldNames();
+
+				// Usar TODOS los datos para cálculos precisos
+				const limitedRawData = rawData; // Usar todos los datos
+
+				for (const category of categories) {
+					const value = calculateValueForCategoryOptimized(
+						rowValue,
+						category,
+						fieldNames,
+						limitedRawData
+					);
+					seriesData.push({
+						category: category,
+						value: value,
+					});
+				}
+
+				return seriesData;
+			};
+
+			// IMPROVED Function to calculate value for a specific category
+			const calculateValueForCategoryOptimized = (
+				rowValue,
+				category,
+				fieldNames,
+				rawData
+			) => {
+				let totalValue = 0;
+				let matchCount = 0;
+
+				// Parse category to get column values and measure
+				const parts = category.split(" | ");
+				const measureName = parts[parts.length - 1];
+
+				// Create object with expected column values
+				const expectedColumnValues = {};
+				fieldNames.columnFields.forEach((fieldName, index) => {
+					expectedColumnValues[fieldName] = parts[index];
+				});
+
+				// Search in data and SUM all that match - IMPROVED ACCURACY
+				let processedCount = 0;
+
+				for (const item of rawData) {
+					if (processedCount >= MAX_PROCESSING) break;
+					processedCount++;
+
+					let rowMatch = true;
+					let columnMatch = true;
+
+					// Check row match with better logic
+					if (Array.isArray(rowValue)) {
+						// Multiple row fields
+						for (let i = 0; i < fieldNames.rowFields.length; i++) {
+							const fieldName = fieldNames.rowFields[i];
+							const expectedVal = rowValue[i];
+							const actualVal = item[fieldName];
+
+							// Handle null/undefined values
+							if (
+								expectedVal !== actualVal &&
+								!(expectedVal == null && actualVal == null)
+							) {
+								rowMatch = false;
+								break;
+							}
+						}
+					} else {
+						// Single row field
+						if (fieldNames.rowFields.length > 0) {
+							const fieldName = fieldNames.rowFields[0];
+							const expectedVal = rowValue;
+							const actualVal = item[fieldName];
+
+							if (
+								expectedVal !== actualVal &&
+								!(expectedVal == null && actualVal == null)
+							) {
+								rowMatch = false;
+							}
+						}
+					}
+
+					// Check column match with better logic
+					if (rowMatch) {
+						for (const fieldName of fieldNames.columnFields) {
+							const expectedValue = expectedColumnValues[fieldName];
+							const actualValue = item[fieldName];
+
+							// Handle null/undefined values
+							if (
+								expectedValue !== actualValue &&
+								!(expectedValue == null && actualValue == null)
+							) {
+								// Detect if it's a date field and format it
+								if (isDateField(actualValue)) {
+									const formattedDate = formatDateToMMDDYYYY(actualValue);
+									if (formattedDate !== expectedValue) {
+										columnMatch = false;
+										break;
+									}
+								} else {
+									columnMatch = false;
+									break;
+								}
+							}
+						}
+					}
+
+					// If row and column match, SUM the measure value
+					if (rowMatch && columnMatch) {
+						const itemValue = parseFloat(item[measureName]) || 0;
+						totalValue += itemValue;
+						matchCount++;
+					}
+				}
+
+				// Log for debugging if needed
+				if (matchCount > 0) {
+					console.log(
+						`✅ Found ${matchCount} matches for category: ${category}, total: ${totalValue}`
+					);
+				}
+
+				return totalValue;
+			};
+
+			// Helper function to detect if a value is a date
+			const isDateField = (value) => {
+				if (!value) return false;
+				// Check if it's an ISO date or similar
+				return (
+					typeof value === "string" &&
+					(value.includes("T") || value.includes("-") || value.includes("/")) &&
+					!isNaN(new Date(value).getTime())
+				);
+			};
+
+			// Function to format date to MM/DD/YYYY format
+			const formatDateToMMDDYYYY = (dateValue) => {
+				try {
+					const date = new Date(dateValue);
+					const month = String(date.getMonth() + 1).padStart(2, "0");
+					const day = String(date.getDate()).padStart(2, "0");
+					const year = date.getFullYear();
+					return `${month}/${day}/${year}`;
+				} catch (e) {
+					console.warn("⚠️ Error formatting date:", dateValue, e);
+					return dateValue;
+				}
+			};
+
+			// Function to format column values
+			const formatColumnValue = (value) => {
+				if (value && value.includes("-") && value.includes("T")) {
+					return formatDateToMMDDYYYY(value);
+				}
+				return value;
+			};
+		</script>
+	</body>
+</html>

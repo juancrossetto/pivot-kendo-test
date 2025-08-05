@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>Kendo PivotGrid con Switch para Ocultar Totales</title>
+		<!-- Eliminamos la etiqueta base para evitar problemas con las rutas -->
+		<link
+			href="https://kendo.cdn.telerik.com/2023.3.1010/styles/kendo.default-v2.min.css"
+			rel="stylesheet"
+		/>
+		<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+		<script src="https://kendo.cdn.telerik.com/2023.3.1010/js/kendo.all.min.js"></script>
+		<style>
+			body {
+				font-family: Arial, sans-serif;
+				margin: 2rem;
+				font-size: 14px;
+			}
+			
+			.switch-container {
+				margin-bottom: 1rem;
+				padding: 10px;
+				background-color: #f9f9f9;
+				border-radius: 4px;
+				border: 1px solid #e0e0e0;
+			}
+			
+			.switch-label {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				cursor: pointer;
+			}
+			
+			.k-pivot-total, .k-pivot-grand-total {
+				background-color: #f5f5f5;
+			}
+			
+			.highlight-total {
+				background-color: #e6f2ff !important;
+			}
+			
+			.hide-total {
+				display: none !important;
+			}
+			
+			#pivotgrid {
+				margin-top: 20px;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="switch-container">
+			<label class="switch-label">
+				<input type="checkbox" id="toggleTotals" />
+				Ocultar Totales
+			</label>
+		</div>
+		
+		<div id="pivotgrid"></div>
+
+		<script>
+			$(document).ready(function() {
+				var pivotGrid;
+				var hideTotals = false;
+				
+				// Datos de ejemplo simples
+				var data = [
+					{ product: "A", category: "Electronics", year: "2022", amount: 200 },
+					{ product: "B", category: "Electronics", year: "2022", amount: 300 },
+					{ product: "C", category: "Furniture", year: "2023", amount: 150 },
+					{ product: "D", category: "Furniture", year: "2023", amount: 350 }
+				];
+
+				// Inicializar el pivotGrid
+				pivotGrid = $("#pivotgrid").kendoPivotGrid({
+					dataSource: {
+						type: "json",
+						data: data,
+						schema: {
+							cube: {
+								dimensions: {
+									product: { caption: "Product", uniqueName: "product" },
+									category: { caption: "Category", uniqueName: "category" },
+									year: { caption: "Year", uniqueName: "year" }
+								},
+								measures: {
+									amount: {
+										field: "amount",
+										aggregate: "sum",
+										format: "{0:c}",
+										caption: "Total Amount"
+									}
+								}
+							}
+						},
+						columns: [{ name: "year" }],
+						rows: [{ name: "category" }, { name: "product" }],
+						measures: ["amount"]
+					},
+					height: 400,
+					columnWidth: 120,
+					dataBound: function() {
+						const grid = this;
+						
+						// Marcar celdas de totales con color
+						grid.element
+							.find(".k-pivot-total, .k-pivot-grand-total")
+							.addClass("highlight-total");
+						
+						if (hideTotals) {
+							// Oculta la última columna (totales)
+							grid.columnsHeader
+								.find("table colgroup col:last-child")
+								.css({ width: 0 });
+							grid.content
+								.find("table colgroup col:last-child")
+								.css({ width: 0 });
+							
+							// También ocultamos visualmente las celdas de la última columna
+							grid.columnsHeader
+								.find("thead th:last-child")
+								.css("display", "none");
+							grid.content
+								.find("tbody td:last-child")
+								.css("display", "none");
+							
+							// Ocultar filas de totales
+							grid.element.find(".k-pivot-total, .k-pivot-grand-total").css("display", "none");
+						} else {
+							// Restaurar visibilidad
+							grid.columnsHeader.find("table colgroup col").css({ width: "" });
+							grid.content.find("table colgroup col").css({ width: "" });
+							
+							grid.columnsHeader.find("thead th").css("display", "");
+							grid.content.find("tbody td").css("display", "");
+							
+							// Mostrar filas de totales
+							grid.element.find(".k-pivot-total, .k-pivot-grand-total").css("display", "");
+						}
+					}
+				}).data("kendoPivotGrid");
+				
+				// Manejar el cambio del checkbox
+				$("#toggleTotals").on("change", function() {
+					hideTotals = this.checked;
+					pivotGrid.refresh();
+				});
+			});
+		</script>
+	</body>
+</html>
